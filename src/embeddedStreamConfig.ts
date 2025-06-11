@@ -489,15 +489,22 @@ export async function generateEmbeddedStreamScheme(
                     `${buildFolder}/zephyr/zephyr.hex`
                 ],
                 commands: [{
-                    command: 'nrfjprog',
+                    command: 'nrfutil',
                     args: [
-                        '--recover',
-                        '--program', `.flash/zephyr.hex`,
-                        '--verify'
+                        'device',
+                        'program',
+                        '--firmware', `.flash/zephyr.hex`
                     ]
                 }, {
-                    command: 'nrfjprog',
-                    args: ['--run']
+                    command: 'nrfutil',
+                    args: [
+                        'device',
+                        'fw-verify',
+                        '--firmware', `.flash/zephyr.hex`
+                    ]
+                }, {
+                    command: 'nrfutil',
+                    args: ['device', 'reset']
                 }]
             }
             return {
