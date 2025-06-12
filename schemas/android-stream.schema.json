@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Android Stream Config",
   "type": "object",
-  "required": ["packageName", "packageMode", "name", "minSDK", "compileSdk", "javaVersion", "soMode", "schemes"],
+  "required": ["packageName", "packageMode", "name", "minSDK", "compileSDK", "javaVersion", "soMode", "schemes"],
   "properties": {
     "packageName": {
       "type": "string",
@@ -33,7 +33,7 @@
       "minimum": 24,
       "maximum": 35
     },
-    "compileSdk": {
+    "compileSDK": {
       "type": "integer",
       "description": "Target Android SDK version",
       "minimum": 24,
