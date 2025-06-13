@@ -305,6 +305,9 @@ export const generateDevcontainerJson = (
 				devcontainerObject.containerEnv['S_ARTIFACT_ANDROID_URL'] = toolchain.artifact_url
 			}
             devcontainerObject.containerEnv['S_ANDROID_VERSION'] = '24-0.1'
+            devcontainerObject.containerEnv['S_GRADLE_VERSION'] = '8.14'
+            devcontainerObject.containerEnv['S_NDK_VERSION'] = 'r27c'
+            devcontainerObject.containerEnv['S_SDK_VERSION'] = '35'
 			break
 		case ExtensionStream.Embedded:
 			if (options?.embedded) {
@@ -331,7 +334,7 @@ export const generateDevcontainerJson = (
 						devcontainerObject.containerEnv['ZEPHYR_BASE'] = '/workspaces/zephyr'
 						devcontainerObject.mounts.push({ source: 'zephyr', target: '/workspaces/zephyr', type: 'volume' })
 						devcontainerObject.mounts.push({ source: 'zephyr-modules', target: '/workspaces/modules', type: 'volume' })
-						break
+                        break
 				}
 			}
 			devcontainerObject.customizations.vscode.extensions.push('wokwi.wokwi-vscode')
