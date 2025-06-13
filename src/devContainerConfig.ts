@@ -308,6 +308,7 @@ export const generateDevcontainerJson = (
             devcontainerObject.containerEnv['S_GRADLE_VERSION'] = '8.14'
             devcontainerObject.containerEnv['S_NDK_VERSION'] = 'r27c'
             devcontainerObject.containerEnv['S_SDK_VERSION'] = '35'
+            devcontainerObject.mounts.push({ source: 'android', target: '/opt/android', type: 'volume' })
 			break
 		case ExtensionStream.Embedded:
 			if (options?.embedded) {
