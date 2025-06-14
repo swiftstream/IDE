@@ -2,7 +2,6 @@ import * as fs from 'fs'
 import * as path from 'path'
 import Handlebars from 'handlebars'
 import { copyFile, readFile } from './helpers/filesHelper'
-import { projectDirectory } from './extension'
 import { LogLevel, print } from './streams/stream'
 import { AndroidStream, DroidBuildArch, droidBuildArchToSwiftBuildFolder } from './streams/android/androidStream'
 import { AndroidStreamConfig, Scheme, SoMode } from './androidStreamConfig'
@@ -11,6 +10,7 @@ import { DevContainerConfig } from './devContainerConfig'
 
 export class AndroidLibraryProject {
     static generateIfNeeded(options: {
+        projectPath: string,
         package: string,
         name: string,
         targets: string[],
@@ -19,7 +19,8 @@ export class AndroidLibraryProject {
         javaVersion: number,
         swiftVersion: string
     }) {
-        const libraryPath = path.join(projectDirectory!, 'Library')
+        const libraryPath = path.join(options.projectPath, 'Library')
+        const swiftSourcesPath = path.join(options.projectPath, 'Sources')
         if (!fs.existsSync(libraryPath)) {
             print(`Created folder at ${libraryPath}`, LogLevel.Unbearable)
             fs.mkdirSync(libraryPath)
@@ -97,6 +98,7 @@ export class AndroidLibraryProject {
     }
 
     static copySoFiles(options: {
+        projectPath: string,
         release: boolean,
         targets: string[],
         archs: DroidBuildArch[],
@@ -109,7 +111,7 @@ export class AndroidLibraryProject {
                 const target = options.targets[i]
                 // copy project .so files
                 const fromPath = path.join(droidBuildArchToSwiftBuildFolder(arch), options.release ? 'release' : 'debug', `lib${target}.so`)
-                const toFolder = path.join(projectDirectory!, 'Library', target.toLowerCase(), 'src', 'main', 'jniLibs', arch)
+                const toFolder = path.join(options.projectPath, 'Library', target.toLowerCase(), 'src', 'main', 'jniLibs', arch)
                 const oldEntries = fs.readdirSync(toFolder, { withFileTypes: true })
                 // - cleanup old .so files
                 for (const entry of oldEntries) {
@@ -163,11 +165,12 @@ export class AndroidLibraryProject {
     }
 
     static proceedTargets(options: {
+        projectPath: string,
         targets: string[]
     }) {
         const begin = '// managed by swiftstreamide: includes-begin'
         const end = '// managed by swiftstreamide: includes-end'
-        const settingsGradlePath = path.join(projectDirectory!, 'Library', 'settings.gradle.kts')
+        const settingsGradlePath = path.join(options.projectPath, 'Library', 'settings.gradle.kts')
         const settingsGradleFile = fs.readFileSync(settingsGradlePath, 'utf8')
         if (!settingsGradleFile.includes(begin) || !settingsGradleFile.includes(end)) {
             print(`⚠️ Skipped setting includes in settings.gradle.kts since special tag is missing`, LogLevel.Detailed)
@@ -186,22 +189,26 @@ export class AndroidLibraryProject {
         fs.writeFileSync(settingsGradlePath, newContent, 'utf8')
     }
 
-    static updateRootProjectName(name: string) {
-        const settingsGradlePath = path.join(projectDirectory!, 'Library', 'settings.gradle.kts')
+    static updateRootProjectName(options: {
+        projectPath: string,
+        name: string
+    }) {
+        const settingsGradlePath = path.join(options.projectPath, 'Library', 'settings.gradle.kts')
         let settingsGradleFile = fs.readFileSync(settingsGradlePath, 'utf8')
         settingsGradleFile = settingsGradleFile.replace(
             /^rootProject\.name\s*=\s*["'].*["']/m,
-            `rootProject.name = "${name}"`
+            `rootProject.name = "${options.name}"`
         )
         fs.writeFileSync(settingsGradlePath, settingsGradleFile, 'utf8')
     }
 
     static updateSubmodule(options: {
+        projectPath: string,
         config: AndroidStreamConfig,
         swiftVersion: string,
         target: string
     }) {
-        const buildGradlePath = path.join(projectDirectory!, 'Library', options.target.toLowerCase(), 'build.gradle.kts')
+        const buildGradlePath = path.join(options.projectPath, 'Library', options.target.toLowerCase(), 'build.gradle.kts')
         print({
             verbose: `Updating "${options.target.toLowerCase()}" gradle submodule`,
             unbearable: `Updating "${options.target.toLowerCase()}" gradle submodule at ${buildGradlePath}`
@@ -247,14 +254,17 @@ export class AndroidLibraryProject {
         fs.writeFileSync(buildGradlePath, buildGradleFile, 'utf8')
     }
 
-    static removeObsoleteSubmodules(targets: string[]) {
-        const libraryPath = path.join(projectDirectory!, 'Library')
+    static removeObsoleteSubmodules(options: {
+        projectPath: string,
+        targets: string[]
+    }) {
+        const libraryPath = path.join(options.projectPath, 'Library')
         const allEntries = fs.readdirSync(libraryPath, { withFileTypes: true })
         const subfolders = allEntries
             .filter(entry => entry.isDirectory())
             .map(entry => entry.name)
         // Determine which folders should be removed
-        const foldersToRemove = subfolders.filter(folder => !targets.map(x => x.toLowerCase()).includes(folder))
+        const foldersToRemove = subfolders.filter(folder => !options.targets.map(x => x.toLowerCase()).includes(folder))
         if (foldersToRemove.length > 0) {
             print(`🧹 Removing obsolete submodules`)
             // Delete redundant folders
@@ -267,6 +277,7 @@ export class AndroidLibraryProject {
     }
 
     static async proceedSoDependencies(stream: AndroidStream, options: {
+        projectPath: string,
         targets: string[],
         arch: DroidBuildArch,
         swiftVersion: string,
@@ -274,14 +285,14 @@ export class AndroidLibraryProject {
     }) {
         for (let i = 0; i < options.targets.length; i++) {
             const target = options.targets[i]
-            const soPath = path.join(projectDirectory!, 'Library', target.toLowerCase(), 'src', 'main', 'jniLibs', options.arch, `lib${target}.so`)
+            const soPath = path.join(options.projectPath, 'Library', target.toLowerCase(), 'src', 'main', 'jniLibs', options.arch, `lib${target}.so`)
             const elfResult = await stream.readelf.neededSoList(soPath)
             if (!elfResult.success) {
                 throw elfResult.error ?? new Error(`Unable to extract dependencies from lib${target}.so`)
             }
             const begin = '// managed by swiftstreamide: dependencies-begin'
             const end = '// managed by swiftstreamide: dependencies-end'
-            const buildGradlePath = path.join(projectDirectory!, 'Library', target.toLowerCase(), 'build.gradle.kts')
+            const buildGradlePath = path.join(options.projectPath, 'Library', target.toLowerCase(), 'build.gradle.kts')
             const buildGradleFile = fs.readFileSync(buildGradlePath, 'utf8')
             if (!buildGradleFile.includes(begin) || !buildGradleFile.includes(end)) {
                 print(`⚠️ Skipped setting dependencies for lib${target}.so since special tag is missing`, LogLevel.Detailed)
