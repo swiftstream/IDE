@@ -1,24 +1,30 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import JSON5 from 'json5'
-import { projectDirectory, sidebarTreeView } from './extension'
+import { sidebarTreeView } from './extension'
 import { window } from 'vscode'
 import { AbortHandler } from './bash'
 import { AndroidStream } from './streams/android/androidStream'
 import { LogLevel, print } from './streams/stream'
 
 export class AndroidStreamConfig {
-    static defaultPath(): string { return `${projectDirectory}/.vscode/android-stream.json` }
+    static defaultPath(options: { projectPath: string }): string { return `${options.projectPath}/.vscode/android-stream.json` }
 
-    public static transaction(process: (config: AndroidStreamConfig) => void) {
-        let config = new AndroidStreamConfig()
-        process(config)
+    public static transaction(options: {
+        projectPath: string,
+        process: (config: AndroidStreamConfig) => void
+    }) {
+        let config = new AndroidStreamConfig({ projectPath: options.projectPath })
+        options.process(config)
         config.save()
     }
 
-    public static async initializeConfigIfNeeded(stream: AndroidStream): Promise<boolean> {
-        const configExists = AndroidStreamConfig.exists()
-        let x = new AndroidStreamConfig()
+    public static async initializeConfigIfNeeded(options: {
+        projectPath: string,
+        stream: AndroidStream
+    }): Promise<boolean> {
+        const configExists = AndroidStreamConfig.exists({ projectPath: options.projectPath })
+        let x = new AndroidStreamConfig({ projectPath: options.projectPath })
         let startedInspection = false
         const startInspection = () => {
             if (!startedInspection) {
@@ -31,9 +37,9 @@ export class AndroidStreamConfig {
             startInspection()
             let swiftPackageName = ''
             try {
-                swiftPackageName = await stream.swift.getPackageName({ fresh: false })
+                swiftPackageName = await options.stream.swift.getPackageName({ fresh: false })
             } catch {
-                swiftPackageName = path.basename(projectDirectory!)
+                swiftPackageName = path.basename(options.projectPath)
             }
             const name = await window.showInputBox({
                 title: 'Project Name',
@@ -134,15 +140,23 @@ export class AndroidStreamConfig {
     private path: string
     config: Config
 
-    static createIfNeeded() {
-        if (!AndroidStreamConfig.exists()) {
-            AndroidStreamConfig.transaction(() => {})
+    static createIfNeeded(options: {
+        projectPath: string
+    }) {
+        if (!AndroidStreamConfig.exists({ projectPath: options.projectPath })) {
+            AndroidStreamConfig.transaction({
+                projectPath: options.projectPath,
+                process: () => {}
+            })
         }
     }
+
+    projectPath: string
     
-    constructor() {
-        this.path = AndroidStreamConfig.defaultPath()
-        if (!AndroidStreamConfig.exists()) {
+    constructor(options: { projectPath: string }) {
+        this.projectPath = options.projectPath
+        this.path = AndroidStreamConfig.defaultPath({ projectPath: options.projectPath })
+        if (!AndroidStreamConfig.exists({ projectPath: options.projectPath })) {
             this.config = {
                 name: '',
                 packageName: '',
@@ -164,19 +178,23 @@ export class AndroidStreamConfig {
     }
 
     public save() {
-        if (!fs.existsSync(`${projectDirectory}/.vscode`)) {
-            fs.mkdirSync(`${projectDirectory}/.vscode`)
+        if (!fs.existsSync(`${this.projectPath}/.vscode`)) {
+            fs.mkdirSync(`${this.projectPath}/.vscode`)
         }
         const devContainerContent = JSON.stringify(this.config, null, '\t')
         fs.writeFileSync(this.path, devContainerContent, 'utf8')
     }
 
-    public static exists(): boolean {
-        return fs.existsSync(AndroidStreamConfig.defaultPath())
+    public static exists(options: {
+        projectPath: string
+    }): boolean {
+        return fs.existsSync(AndroidStreamConfig.defaultPath({ projectPath: options.projectPath }))
     }
 
-    public static schemes(): Scheme[] {
-        let config = new AndroidStreamConfig()
+    public static schemes(options: {
+        projectPath: string
+    }): Scheme[] {
+        let config = new AndroidStreamConfig({ projectPath: options.projectPath })
         return config.config?.schemes ?? []
     }
     
@@ -188,8 +206,10 @@ export class AndroidStreamConfig {
         return false
     }
 
-    public static selectedScheme(): Scheme | undefined {
-        let config = new AndroidStreamConfig()
+    public static selectedScheme(options: {
+        projectPath: string
+    }): Scheme | undefined {
+        let config = new AndroidStreamConfig({ projectPath: options.projectPath })
         if (!config.config?.selectedScheme) return undefined
         return config.config.schemes?.find(x => x.title === config.config?.selectedScheme)
     }
@@ -201,18 +221,20 @@ export class AndroidStreamConfig {
     }
 }
 
-export async function chooseScheme(
+export async function chooseScheme(options: {
+    projectPath: string,
     stream: AndroidStream,
-    options: {
-        release: boolean,
-        abortHandler?: AbortHandler
-    }
-): Promise<Scheme | undefined> {
-    if (await AndroidStreamConfig.initializeConfigIfNeeded(stream) === false) {
+    release: boolean,
+    abortHandler?: AbortHandler
+}): Promise<Scheme | undefined> {
+    if (await AndroidStreamConfig.initializeConfigIfNeeded({
+        projectPath: options.projectPath,
+        stream: options.stream
+    }) === false) {
         return undefined
     }
-    const streamConfig = new AndroidStreamConfig()
-    const schemes = AndroidStreamConfig.schemes()
+    const streamConfig = new AndroidStreamConfig({ projectPath: options.projectPath })
+    const schemes = AndroidStreamConfig.schemes({ projectPath: options.projectPath })
     if (schemes.length > 0) {
         const selectedTitle = await window.showQuickPick(schemes.map(x => x.title), {
             placeHolder: `Select scheme`
@@ -220,16 +242,19 @@ export async function chooseScheme(
         if (!selectedTitle) return undefined
         const selectedScheme = schemes.find(x => x.title === selectedTitle)
         if (!selectedScheme) return undefined
-        AndroidStreamConfig.transaction((x) => {
-            x.setSelectedScheme(selectedScheme)
-            sidebarTreeView?.refresh()
+        AndroidStreamConfig.transaction({
+            projectPath: options.projectPath,
+            process: (x) => {
+                x.setSelectedScheme(selectedScheme)
+                sidebarTreeView?.refresh()
+            }
         })
         return selectedScheme
     } else {
         if (await window.showQuickPick(['Yes', 'No'], {
             placeHolder: 'Would you like to create a build scheme?'
         }) !== 'Yes') return undefined
-        const swiftTargets = await stream.swift.getLibraryProducts({
+        const swiftTargets = await options.stream.swift.getLibraryProducts({
             fresh: false,
             abortHandler: undefined
         })
@@ -282,10 +307,13 @@ export async function chooseScheme(
                 'libswiftSynchronization.so'
             ]
         }
-        AndroidStreamConfig.transaction((x) => {
-            x.config?.schemes?.push(newScheme)
-            x.setSelectedScheme(newScheme)
-            sidebarTreeView?.refresh()
+        AndroidStreamConfig.transaction({
+            projectPath: options.projectPath,
+            process: (x) => {
+                x.config?.schemes?.push(newScheme)
+                x.setSelectedScheme(newScheme)
+                sidebarTreeView?.refresh()
+            }
         })
         return newScheme
     }
