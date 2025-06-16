@@ -81,13 +81,18 @@ export class AndroidStream extends Stream {
         release: boolean,
         abortHandler?: AbortHandler
     }): Promise<Scheme | undefined> {
-        const scheme = await chooseScheme(this, {
+        const scheme = await chooseScheme({
+            projectPath: projectDirectory!,
+            stream: this,
             release: options.release,
             abortHandler: options.abortHandler
         })
         if (!scheme) return undefined
-        AndroidStreamConfig.transaction(x => {
-            x.setSelectedScheme(scheme)
+        AndroidStreamConfig.transaction({
+            projectPath: projectDirectory!,
+            process: x => {
+                x.setSelectedScheme(scheme)
+            }
         })
         sidebarTreeView?.refresh()
     }
@@ -96,9 +101,11 @@ export class AndroidStream extends Stream {
         release: boolean,
         abortHandler?: AbortHandler
     }): Promise<Scheme | undefined> {
-        const selectedScheme = AndroidStreamConfig.selectedScheme()
+        const selectedScheme = AndroidStreamConfig.selectedScheme({ projectPath: projectDirectory! })
         if (selectedScheme) return selectedScheme
-        return await chooseScheme(this, {
+        return await chooseScheme({
+            projectPath: projectDirectory!,
+            stream: this,
             release: options.release,
             abortHandler: options.abortHandler
         })

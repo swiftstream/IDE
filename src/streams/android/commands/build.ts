@@ -55,7 +55,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
 				abortHandler: abortHandler
 			})
 		}
-        const streamConfig = new AndroidStreamConfig()
+        const streamConfig = new AndroidStreamConfig({ projectPath: projectDirectory! })
         // Phase 2: Retrieve Swift targets
         print('🔳 Phase 2: Retrieve Swift targets', LogLevel.Verbose)
         await stream.chooseTarget({ release: false, abortHandler: abortHandler })
@@ -83,6 +83,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
         const swiftVersionString = `${swiftVersion.major}.${swiftVersion.minor}.${swiftVersion.patch}`
         print('🔳 Phase 4: Create or repair Library project', LogLevel.Verbose)
         AndroidLibraryProject.generateIfNeeded({
+            projectPath: projectDirectory!,
             package: streamConfig.config.packageName,
             name: streamConfig.config.name,
             targets: targets,
@@ -94,11 +95,13 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
         // Phase 5: Proceed Gradle targets
         print('🔳 Phase 5: Proceed Gradle targets', LogLevel.Verbose)
         AndroidLibraryProject.proceedTargets({
+            projectPath: projectDirectory!,
             targets: targets
         })
         for (let t = 0; t < targets.length; t++) {
             const target = targets[t]
             AndroidLibraryProject.updateSubmodule({
+                projectPath: projectDirectory!,
                 config: streamConfig,
                 swiftVersion: swiftVersionString,
                 target: target
@@ -107,6 +110,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
         // Phase 6: Copy .so files into Library project
         print('🔳 Phase 6: Copy .so files', LogLevel.Verbose)
         AndroidLibraryProject.copySoFiles({
+            projectPath: projectDirectory!,
             release: false,
             targets: targets,
             archs: archs,
@@ -118,13 +122,18 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
         for (let a = 0; a < archs.length; a++) {
             const arch = archs[a]
             await AndroidLibraryProject.proceedSoDependencies(stream, {
+                projectPath: projectDirectory!,
                 targets: targets,
                 arch: arch,
                 swiftVersion: swiftVersionString,
                 streamConfig: streamConfig,
             })
         }
-        AndroidLibraryProject.removeObsoleteSubmodules(targets)
+        AndroidLibraryProject.removeObsoleteSubmodules({
+            projectPath: projectDirectory!,
+            targets: targets
+        })
+        // TODO: Android App project?
         measure.finish()
         if (abortHandler.isCancelled) return
         status('check', `Build Succeeded in ${measure.time}ms`, StatusType.Success)
