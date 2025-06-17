@@ -40,7 +40,7 @@
 		{
 			"label": "Build Extension",
 			"command": "vsce",
-			"args": ["package", "-o", "extension.vsix"],
+			"args": ["package", "-o", "extension.vsix", "--allow-package-secrets", "privatekey"],
 			"type": "shell"
 		},
 		// MARK: Establish VSCode Store Session
