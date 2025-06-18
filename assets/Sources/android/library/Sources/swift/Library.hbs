@@ -1,0 +1,28 @@
+import JNIKit
+import Logging
+#if canImport(Android)
+import Android
+import AndroidLogging
+#endif
+
+#if os(Android)
+@_cdecl("Java_{{namespace}}_{{kotlinclassname}}_{{methodname}}")
+public func {{methodname}}(envPointer: UnsafeMutablePointer<JNIEnv?>, appObject: jobject, callerObject: jobject) {
+    #if canImport(Android)
+    LoggingSystem.bootstrap(AndroidLogHandler.taggedBySource)
+    #endif
+    let logger = Logger(label: "🐦‍🔥 SWIFT")
+    logger.info("🚀 Hello World!")
+    let jvm = envPointer.jvm()
+    JNIKit.shared.initialize(with: jvm)
+    let localEnv = JEnv(envPointer)
+    let callerObj = callerObject.box(localEnv)
+    Task {
+        guard let env = JNIKit.shared.vm.attachCurrentThread() else { return }
+        logger.info("🚀 new env: \(env)")
+        logger.info("🚀 jni version: \(env.getVersionString())")
+        let callerDescription = callerObj?.object()?.toString()
+        logger.info("🚀 caller description: \(callerDescription ?? "n/a")")
+    }
+}
+#endif

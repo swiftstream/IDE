@@ -1,0 +1,11 @@
+package {{namespace}}
+
+import android.util.Log
+
+object {{kotlinclassname}} {
+    init {
+        System.loadLibrary("{{target}}")
+    }
+
+    external fun initialize(caller: Any)
+}
