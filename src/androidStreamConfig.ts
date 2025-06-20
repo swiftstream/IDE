@@ -19,6 +19,89 @@ export class AndroidStreamConfig {
         config.save()
     }
 
+    /// Should be called from the NewProjectWizard
+    public static async createInitialConfig(options: {
+        projectPath: string,
+        projectName: string,
+        packageMode: PackageMode
+    }): Promise<Config | undefined> {
+        let x = new AndroidStreamConfig({ projectPath: options.projectPath })
+        x.config.name = options.projectName
+        const packageName = await AndroidStreamConfig.askForJavaLibraryNamespace()
+        if (!packageName || packageName.length === 0) {
+            return undefined
+        } 
+        x.config.packageName = packageName
+        const minSDK = await AndroidStreamConfig.askForMinSDK()
+        if (!minSDK) {
+            return undefined
+        }
+        x.config.minSDK = parseInt(minSDK)
+        const compileSDK = await AndroidStreamConfig.askForCompileSDK()
+        if (!compileSDK) {
+            return undefined
+        }
+        x.config.compileSDK = parseInt(compileSDK)
+        const javaVersion = await AndroidStreamConfig.askForJavaVersion()
+        if (!javaVersion) {
+            return undefined
+        }
+        x.config.javaVersion = parseInt(javaVersion)
+        x.config.soMode = SoMode.Packed
+        x.config.packageMode = options.packageMode
+        x.config.schemes = [{
+            title: `${options.projectName} Debug`,
+            swiftTargets: [options.projectName],
+            buildConfiguration: SchemeBuildConfiguration.Debug
+        }, {
+            title: `${options.projectName} Release`,
+            swiftTargets: [options.projectName],
+            buildConfiguration: SchemeBuildConfiguration.Release
+        }]
+        x.save()
+        return x.config
+    }
+
+    static async askForJavaLibraryNamespace(): Promise<string | undefined> {
+        return await window.showInputBox({
+            title: 'Java Library Namespace',
+            value: '',
+            placeHolder: 'e.g. com.my.lib',
+            prompt: 'Choose the namespace for your java library'
+        })
+    }
+
+    static async askForMinSDK(): Promise<string | undefined> {
+        return await window.showQuickPick([
+            '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35'
+        ], {
+            title: 'Android Min SDK Version',
+            placeHolder: `Choose Android Min SDK Version`
+        })
+    }
+
+    static async askForCompileSDK(): Promise<string | undefined> {
+        return await window.showQuickPick([
+            '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35'
+        ], {
+            title: 'Android Compile SDK Version',
+            placeHolder: `Choose Android SDK Version`
+        })
+    }
+
+    static async askForJavaVersion(): Promise<string | undefined> {
+        const values = [
+            '11'
+        ]
+        if (values.length == 1) {
+            return values[0]
+        }
+        return await window.showQuickPick(values, {
+            title: 'Java Version',
+            placeHolder: `Choose Java Version`
+        })
+    }
+
     public static async initializeConfigIfNeeded(options: {
         projectPath: string,
         stream: AndroidStream
@@ -54,12 +137,7 @@ export class AndroidStreamConfig {
         }
         if (!x.config.packageName) {
             startInspection()
-            const packageName = await window.showInputBox({
-                title: 'Java Library Namespace',
-                value: '',
-                placeHolder: 'e.g. com.my.lib',
-                prompt: 'Choose the namespace for your java library'
-            })
+            const packageName = await AndroidStreamConfig.askForJavaLibraryNamespace()
             if (!packageName || packageName.length === 0) {
                 return false
             } 
@@ -67,12 +145,7 @@ export class AndroidStreamConfig {
         }
         if (x.config.minSDK === 0) {
             startInspection()
-            const minSDK = await window.showQuickPick([
-                '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35'
-            ], {
-                title: 'Android Min SDK Version',
-                placeHolder: `Choose Android Min SDK Version`
-            })
+            const minSDK = await AndroidStreamConfig.askForMinSDK()
             if (!minSDK) {
                 return false
             }
@@ -80,25 +153,15 @@ export class AndroidStreamConfig {
         }
         if (x.config.compileSDK === 0) {
             startInspection()
-            const compileSdk = await window.showQuickPick([
-                '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35'
-            ], {
-                title: 'Android Compile SDK Version',
-                placeHolder: `Choose Android SDK Version`
-            })
-            if (!compileSdk) {
+            const compileSDK = await AndroidStreamConfig.askForCompileSDK()
+            if (!compileSDK) {
                 return false
             }
-            x.config.compileSDK = parseInt(compileSdk)
+            x.config.compileSDK = parseInt(compileSDK)
         }
         if (x.config.javaVersion === 0) {
             startInspection()
-            const javaVersion = await window.showQuickPick([
-                '11'
-            ], {
-                title: 'Java Version',
-                placeHolder: `Choose Java Version`
-            })
+            const javaVersion = await AndroidStreamConfig.askForJavaVersion()
             if (!javaVersion) {
                 return false
             }
