@@ -78,6 +78,18 @@ export class AndroidLibraryProject {
             if (!fs.existsSync(mainPath)) {
                 fs.mkdirSync(mainPath)
             }
+            const javaPath = path.join(mainPath, 'java')
+            if (!fs.existsSync(javaPath)) {
+                fs.mkdirSync(javaPath)
+            }
+            const sourcesPath = path.join(javaPath, ...buildPayload.namespace.split('.'))
+            if (!fs.existsSync(sourcesPath)) {
+                fs.mkdirSync(sourcesPath, { recursive: true })
+            }
+            fs.writeFileSync(
+                path.join(sourcesPath, 'SwiftInterface.kt'),
+                Handlebars.compile(readFile(path.join('assets', 'Sources', 'android', 'library', 'Sources', 'kotlin', 'Library.hbs')))(buildPayload)
+            )
             const jniLibsPath = path.join(mainPath, 'jniLibs')
             if (!fs.existsSync(jniLibsPath)) {
                 fs.mkdirSync(jniLibsPath)
