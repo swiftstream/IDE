@@ -12,6 +12,7 @@ import { FileBuilder } from '../helpers/fileBuilder'
 import { copyFile, readFile } from '../helpers/filesHelper'
 import { openProject } from '../helpers/openProject'
 import { DevContainerConfig, EmbeddedBranch, generateAndWriteDevcontainerJson } from '../devContainerConfig'
+import { AndroidStreamConfig, PackageMode } from '../androidStreamConfig'
 
 let webViewPanel: WebviewPanel | undefined
 const isWin = process.platform == 'win32'
@@ -716,6 +717,34 @@ async function createNewProjectFiles(
 						Handlebars.compile(readFile(osPath.join('assets', 'Sources', streamType, androidType, 'Sources', 'swift', 'Library.hbs')))(hbsSourcePayload)
 					)
 				}
+				let packagePayload = {
+					swiftToolsVersion: '6.0',
+					name: name,
+					platforms: '.macOS(.v10_15)',
+					products: [
+						`.library(name: "${name}", type: .dynamic, targets: ["${name}"])`
+					],
+					dependencies: [
+						{ package: '.package(url: "https://github.com/swifdroid/jni-kit.git", from: "2.0.0")' },
+						{ package: '.package(url: "https://github.com/swifdroid/AndroidLogging.git", from: "0.1.0")' },
+						{ package: '.package(url: "https://github.com/apple/swift-log.git", from: "1.6.2")' }
+					],
+					targets: [
+						{
+							type: 'target',
+							name: name,
+							dependencies: [
+								'.product(name: "JNIKit", package: "jni-kit")',
+								'.product(name: "Logging", package: "swift-log")',
+								'.product(name: "AndroidLogging", package: "AndroidLogging", condition: .when(platforms: [.android]))'
+							]
+						}
+					]
+				}
+				fs.writeFileSync(
+					osPath.join(path, 'Package.swift'),
+					Handlebars.compile(readFile(osPath.join('assets', 'Sources', 'Package.hbs')))(packagePayload)
+				)
 				// Copy devcontainer files
 				await copyDevContainerFile(`Dockerfile`)
 				// Copy .gitignore
