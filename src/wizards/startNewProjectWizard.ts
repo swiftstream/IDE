@@ -675,6 +675,47 @@ async function createNewProjectFiles(
 					defaultSwiftVersion
 				)) return
 				let androidType = selectedValues['android-type']
+				const config = await AndroidStreamConfig.createInitialConfig({
+					projectPath: path,
+					projectName: name,
+					packageMode: androidType == 'app' ? PackageMode.App : PackageMode.Library
+				})
+				if (!config) {
+					webViewPanel?.webview.postMessage({ type: 'creatingFailed', data: {} })
+					return
+				}
+				const hbsSourcePayload = {
+					namespace: `${config.packageName}_${name.toLowerCase()}`.split('.').join('_'),
+					kotlinclassname: 'SwiftInterface',
+					methodname: 'initialize'
+				}
+				if (androidType === 'app') {
+					const sourcesFolder = osPath.join(path, 'Sources')
+					if (!fs.existsSync(sourcesFolder)) {
+						fs.mkdirSync(sourcesFolder, { recursive: true })
+					}
+					const appSourcesFolder = osPath.join(path, 'Sources', name)
+					if (!fs.existsSync(appSourcesFolder)) {
+						fs.mkdirSync(appSourcesFolder, { recursive: true })
+					}
+					fs.writeFileSync(
+						osPath.join(appSourcesFolder, 'App.swift'),
+						Handlebars.compile(readFile(osPath.join('assets', 'Sources', streamType, androidType, 'Sources', 'swift', 'App.hbs')))(hbsSourcePayload)
+					)
+				} else if (androidType === 'library') {
+					const sourcesFolder = osPath.join(path, 'Sources')
+					if (!fs.existsSync(sourcesFolder)) {
+						fs.mkdirSync(sourcesFolder, { recursive: true })
+					}
+					const appSourcesFolder = osPath.join(path, 'Sources', name)
+					if (!fs.existsSync(appSourcesFolder)) {
+						fs.mkdirSync(appSourcesFolder, { recursive: true })
+					}
+					fs.writeFileSync(
+						osPath.join(appSourcesFolder, 'Library.swift'),
+						Handlebars.compile(readFile(osPath.join('assets', 'Sources', streamType, androidType, 'Sources', 'swift', 'Library.hbs')))(hbsSourcePayload)
+					)
+				}
 				// Copy devcontainer files
 				await copyDevContainerFile(`Dockerfile`)
 				// Copy .gitignore
