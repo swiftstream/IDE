@@ -297,7 +297,7 @@ export async function chooseScheme(options: {
         return undefined
     }
     const streamConfig = new AndroidStreamConfig({ projectPath: options.projectPath })
-    const schemes = AndroidStreamConfig.schemes({ projectPath: options.projectPath })
+    const schemes = AndroidStreamConfig.schemes({ projectPath: options.projectPath }).filter(x => x.buildConfiguration === (options.release ? SchemeBuildConfiguration.Release : SchemeBuildConfiguration.Debug))
     if (schemes.length > 0) {
         const selectedTitle = await window.showQuickPick(schemes.map(x => x.title), {
             placeHolder: `Select scheme`
