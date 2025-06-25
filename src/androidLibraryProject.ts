@@ -88,7 +88,11 @@ export class AndroidLibraryProject {
             }
             fs.writeFileSync(
                 path.join(sourcesPath, 'SwiftInterface.kt'),
-                Handlebars.compile(readFile(path.join('assets', 'Sources', 'android', 'library', 'Sources', 'kotlin', 'Library.hbs')))(buildPayload)
+                Handlebars.compile(readFile(path.join('assets', 'Sources', 'android', 'library', 'Sources', 'kotlin', 'Library.hbs')))({
+                    namespace: buildPayload.namespace,
+                    kotlinclassname: 'SwiftInterface',
+                    target: buildPayload.targetName
+                })
             )
             const jniLibsPath = path.join(mainPath, 'jniLibs')
             if (!fs.existsSync(jniLibsPath)) {
