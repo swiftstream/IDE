@@ -62,7 +62,11 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
         if (!stream.swift.selectedDebugTarget) 
             throw `Please select Swift target to build`
         // Phase 3: Build executable targets
-        const shouldRestartLSP = !hasRestartedLSP || !stream.isDebugBuilt(stream.swift.selectedDebugTarget, DroidBuildArch.Arm64)
+        const shouldRestartLSP = !hasRestartedLSP || !stream.isDebugBuilt({
+            target: stream.swift.selectedDebugTarget,
+            arch: DroidBuildArch.Arm64,
+            androidSDKCompileVersion: `${streamConfig.config.compileSDK}`
+        })
         print('🔳 Phase 3: Build executable targets', LogLevel.Verbose)
         // Only one for current device, or all without device
         const archs = stream.currentBuildArch ? [stream.currentBuildArch] : [DroidBuildArch.Arm64, DroidBuildArch.ArmEabi, DroidBuildArch.x86_64]
@@ -74,6 +78,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
                 arch: arch,
                 release: false,
                 swiftArgs: scheme.swiftArgs,
+                androidSDKCompileVersion: `${streamConfig.config.compileSDK}`,
                 force: true,
                 abortHandler: abortHandler
             })

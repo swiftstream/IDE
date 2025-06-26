@@ -32,6 +32,7 @@ export async function buildExecutableTarget(options: {
             mode: options.type == SwiftBuildType.Native ? SwiftBuildMode.Standard : webBuildModeToSwiftBuildMode(options.mode),
             targetName: options.target,
             release: options.release,
+            androidSDKCompileVersion: undefined,
             abortHandler: options.abortHandler,
             progressHandler: (p) => {
                 buildStatus(`\`${options.target}\` swift target: building ${p}`)

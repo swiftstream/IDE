@@ -38,6 +38,7 @@ export async function buildExecutableTarget(options: {
             targetName: options.target,
             release: options.release,
             abortHandler: options.abortHandler,
+            androidSDKCompileVersion: undefined,
             progressHandler: (p) => {
                 buildStatus(`\`${options.target}\` swift target: building ${p}`)
             }

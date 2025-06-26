@@ -31,19 +31,29 @@ export class AndroidStream extends Stream {
 
     }
 
-    isDebugBuilt(target: string, arch: DroidBuildArch): boolean {
+    isDebugBuilt(options: {
+        target: string,
+        arch: DroidBuildArch,
+        androidSDKCompileVersion: string
+    }): boolean {
         return fs.existsSync(pathToCompiledBinary({
-            target: target,
-            mode: droidBuildArchToSwiftBuildMode(arch),
-            release: false
+            target: options.target,
+            mode: droidBuildArchToSwiftBuildMode(options.arch),
+            release: false,
+            androidSDKCompileVersion: options.androidSDKCompileVersion
         }))
     }
     
-    isReleaseBuilt(target: string, arch: DroidBuildArch): boolean {
+    isReleaseBuilt(options: {
+        target: string,
+        arch: DroidBuildArch,
+        androidSDKCompileVersion: string
+    }): boolean {
         return fs.existsSync(pathToCompiledBinary({
-            target: target,
-            mode: droidBuildArchToSwiftBuildMode(arch),
-            release: true
+            target: options.target,
+            mode: droidBuildArchToSwiftBuildMode(options.arch),
+            release: true,
+            androidSDKCompileVersion: options.androidSDKCompileVersion
         }))
     }
 
@@ -161,13 +171,16 @@ export function droidBuildArchToSwiftBuildMode(mode: DroidBuildArch): SwiftBuild
             return SwiftBuildMode.Standard
     }
 }
-export function droidBuildArchToSwiftBuildFolder(mode: DroidBuildArch): string {
-    switch (mode) {
+export function droidBuildArchToSwiftBuildFolder(options: {
+    mode: DroidBuildArch,
+    compileSDK: string
+}): string {
+    switch (options.mode) {
         case DroidBuildArch.Arm64:
-            return path.join(projectDirectory!, '.build', '.droid', `aarch64-unknown-linux-android${env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
+            return path.join(projectDirectory!, '.build', '.droid', `aarch64-unknown-linux-android${options.compileSDK ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
         case DroidBuildArch.ArmEabi:
-            return path.join(projectDirectory!, '.build', '.droid', `armv7-unknown-linux-androideabi${env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
+            return path.join(projectDirectory!, '.build', '.droid', `armv7-unknown-linux-androideabi${options.compileSDK ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
         case DroidBuildArch.x86_64:
-            return path.join(projectDirectory!, '.build', '.droid', `x86_64-unknown-linux-android${env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
+            return path.join(projectDirectory!, '.build', '.droid', `x86_64-unknown-linux-android${options.compileSDK ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
     }
 }

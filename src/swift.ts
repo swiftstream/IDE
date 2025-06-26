@@ -211,7 +211,8 @@ export class Swift {
         const executablePath = pathToCompiledBinary({
             target: options.serviceWorkerTarget,
             mode: SwiftBuildMode.Standard,
-            release: false
+            release: false,
+            androidSDKCompileVersion: undefined
         })
         if (!fs.existsSync(executablePath)) {
             throw `Missing executable binary of the service target, can't retrieve manifest`
@@ -240,7 +241,8 @@ export class Swift {
         const executablePath = pathToCompiledBinary({
             target: options.target,
             mode: SwiftBuildMode.Standard,
-            release: false
+            release: false,
+            androidSDKCompileVersion: undefined
         })
         if (!fs.existsSync(executablePath)) {
             throw `Missing executable binary of the ${options.target} target, can't retrieve index data`
@@ -369,6 +371,7 @@ export class Swift {
         targetName: string,
         release: boolean,
         swiftArgs?: string[],
+        androidSDKCompileVersion?: string,
         abortHandler: AbortHandler,
         progressHandler?: (p: string) => void
     }) {
@@ -433,13 +436,13 @@ export class Swift {
                 }
                 break
             case SwiftBuildMode.AndroidArm64:
-                args.push(...['--swift-sdk', `aarch64-unknown-linux-android${process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`])
+                args.push(...['--swift-sdk', `aarch64-unknown-linux-android${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`])
                 break
             case SwiftBuildMode.AndroidArmEabi:
-                args.push(...['--swift-sdk', `armv7-unknown-linux-androideabi${process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`])
+                args.push(...['--swift-sdk', `armv7-unknown-linux-androideabi${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`])
                 break
             case SwiftBuildMode.Androidx86_64:
-                args.push(...['--swift-sdk', `x86_64-unknown-linux-android${process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`])
+                args.push(...['--swift-sdk', `x86_64-unknown-linux-android${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`])
                 break
         }
         if (!fs.existsSync(`${projectDirectory}/Package.swift`)) {
@@ -667,10 +670,14 @@ export class Swift {
     selectedReleaseTarget: string | undefined
     selectedTestTarget: string | undefined
 
-    makeTmpCopyOfTargetBinary(options: { release: boolean, buildMode: SwiftBuildMode }): boolean {
+    makeTmpCopyOfTargetBinary(options: {
+        release: boolean,
+        buildMode: SwiftBuildMode,
+        androidSDKCompileVersion?: string
+    }): boolean {
         const selectedTarget = this.selectedTarget({ release: options.release })
         if (!selectedTarget) return false
-        const buildFolder = compilationFolder({ mode: options.buildMode, release: options.release })
+        const buildFolder = compilationFolder({ mode: options.buildMode, release: options.release, androidSDKCompileVersion: options.androidSDKCompileVersion })
         const pathFrom = path.join(buildFolder, selectedTarget)
         const pathTo = path.join(projectDirectory!, '.build', '_AppToDeploy')
         if (!fs.existsSync(pathFrom)) return false
@@ -852,7 +859,8 @@ export function allSwiftDroidBuildTypes(): SwiftBuildType[] {
 export function pathToCompiledBinary(params: {
     target: string | undefined,
     mode: SwiftBuildMode,
-    release: boolean
+    release: boolean,
+    androidSDKCompileVersion?: string
 }): string {
     const platform = isArm64 ? 'aarch64' : 'x86_64'
     const type = params.release ? 'release' : 'debug'
@@ -869,18 +877,19 @@ export function pathToCompiledBinary(params: {
         case SwiftBuildMode.Wasip1Threads:
             return path.join(projectDirectory!, '.build', '.wasi', `wasm32-unknown-wasip1-threads`, type, ...target)
         case SwiftBuildMode.AndroidArm64:
-            return path.join(projectDirectory!, '.build', '.droid', `aarch64-unknown-linux-android${env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`, type, ...target)
+            return path.join(projectDirectory!, '.build', '.droid', `aarch64-unknown-linux-android${params.androidSDKCompileVersion ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`, type, ...target)
         case SwiftBuildMode.AndroidArmEabi:
-            return path.join(projectDirectory!, '.build', '.droid', `armv7-unknown-linux-androideabi${env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`, type, ...target)
+            return path.join(projectDirectory!, '.build', '.droid', `armv7-unknown-linux-androideabi${params.androidSDKCompileVersion ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`, type, ...target)
         case SwiftBuildMode.Androidx86_64:
-            return path.join(projectDirectory!, '.build', '.droid', `x86_64-unknown-linux-android${env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`, type, ...target)
+            return path.join(projectDirectory!, '.build', '.droid', `x86_64-unknown-linux-android${params.androidSDKCompileVersion ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`, type, ...target)
     }
 }
 export function compilationFolder(params: {
     mode: SwiftBuildMode,
-    release: boolean
+    release: boolean,
+    androidSDKCompileVersion?: string
 }): string {
-    return pathToCompiledBinary({ target: undefined, mode: params.mode, release: params.release })
+    return pathToCompiledBinary({ target: undefined, mode: params.mode, release: params.release, androidSDKCompileVersion: params.androidSDKCompileVersion })
 }
 
 export function createSymlinkFoldersIfNeeded() {

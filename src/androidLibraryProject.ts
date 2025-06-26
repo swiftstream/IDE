@@ -126,7 +126,10 @@ export class AndroidLibraryProject {
             for (let i = 0; i < options.targets.length; i++) {
                 const target = options.targets[i]
                 // copy project .so files
-                const fromPath = path.join(droidBuildArchToSwiftBuildFolder(arch), options.release ? 'release' : 'debug', `lib${target}.so`)
+                const fromPath = path.join(droidBuildArchToSwiftBuildFolder({
+                    mode: arch,
+                    compileSDK: `${options.streamConfig.config.compileSDK}`
+                }), options.release ? 'release' : 'debug', `lib${target}.so`)
                 const toFolder = path.join(options.projectPath, 'Library', target.toLowerCase(), 'src', 'main', 'jniLibs', arch)
                 const oldEntries = fs.readdirSync(toFolder, { withFileTypes: true })
                 // - cleanup old .so files

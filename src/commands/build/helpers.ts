@@ -36,6 +36,7 @@ export async function buildSwiftTarget(options: {
 	targetName: string,
 	release: boolean,
 	swiftArgs?: string[],
+	androidSDKCompileVersion?: string,
 	abortHandler: AbortHandler,
 	progressHandler?: (p: string) => void
 }) {
@@ -46,6 +47,7 @@ export async function buildSwiftTarget(options: {
 		targetName: options.targetName,
 		release: options.release,
 		swiftArgs: options.swiftArgs,
+		androidSDKCompileVersion: options.androidSDKCompileVersion,
 		abortHandler: options.abortHandler,
 		progressHandler: options.progressHandler
 	})

@@ -14,6 +14,7 @@ export async function buildExecutableTarget(options: {
     release: boolean,
     force: boolean,
     swiftArgs?: string[] | Record<string, string[]>,
+    androidSDKCompileVersion: string,
     abortHandler: AbortHandler
 }) {
     if (!options.force && !doesModifiedAnySwiftFile(options.type ?? SwiftBuildType.Native)) {
@@ -45,6 +46,7 @@ export async function buildExecutableTarget(options: {
             targetName: options.target,
             release: options.release,
             swiftArgs: swiftArgs,
+            androidSDKCompileVersion: options.androidSDKCompileVersion,
             abortHandler: options.abortHandler,
             progressHandler: (p) => {
                 buildStatus(`\`${options.target}\` swift target: building ${p}`)
