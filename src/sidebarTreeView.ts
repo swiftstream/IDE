@@ -682,6 +682,7 @@ export enum SideTreeItem {
 		DebugBrotli = 'DebugBrotli',
 		DebugBuildMode = 'DebugBuildMode',
 		DebugTarget = 'DebugTarget',
+		AndroidTarget = 'AndroidTarget',
 	Release = 'Release',
 		BuildRelease = 'BuildRelease',
 		RunRelease = 'RunRelease',

@@ -1,15 +1,15 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { env } from 'process'
-import { ConfigurationChangeEvent, FileDeleteEvent, FileRenameEvent, TextDocument, window } from 'vscode'
-import { LogLevel, print, Stream } from '../stream'
-import { Dependency } from '../../sidebarTreeView'
-import { isInContainer, projectDirectory, sidebarTreeView } from '../../extension'
+import { commands, ConfigurationChangeEvent, FileDeleteEvent, FileRenameEvent, TextDocument, window } from 'vscode'
+import { isBuildingDebug, LogLevel, print, Stream } from '../stream'
+import { Dependency, SideTreeItem } from '../../sidebarTreeView'
+import { extensionContext, isInContainer, projectDirectory, sidebarTreeView } from '../../extension'
 import { pathToCompiledBinary, Swift, SwiftBuildMode } from '../../swift'
 import { buildCommand, hotRebuildSwift } from './commands/build'
 import { ReadElf } from '../../readelf'
 import { AbortHandler } from '../../bash'
-import { AndroidStreamConfig, chooseScheme, Scheme } from '../../androidStreamConfig'
+import { AndroidStreamConfig, chooseScheme, PackageMode, Scheme, SchemeBuildConfiguration } from '../../androidStreamConfig'
 
 export class AndroidStream extends Stream {
     readelf: ReadElf
@@ -59,7 +59,22 @@ export class AndroidStream extends Stream {
 
     registerCommands() {
         super.registerCommands()
+        extensionContext.subscriptions.push(commands.registerCommand(this.schemeElement().id, async () => await this.chooseScheme({}) ))
+    }
 
+    schemeElement = () => {
+        const scheme = AndroidStreamConfig.selectedScheme({ projectPath: projectDirectory! })
+        let details = ''
+        if (scheme?.buildConfiguration) {
+            details = scheme.buildConfiguration === SchemeBuildConfiguration.Debug ? 'Debug' : 'Release'
+        }
+        return new Dependency({
+            id: SideTreeItem.AndroidTarget,
+            label: scheme?.title ?? 'Scheme',
+            version: details,
+            tooltip: `${scheme ? scheme.buildConfiguration == SchemeBuildConfiguration.Debug ? 'Debug ' : 'Release ' : ''}Scheme for Build and Run actions`,
+            icon: scheme ? scheme.buildConfiguration == SchemeBuildConfiguration.Debug ? 'target::charts.orange' : 'target::charts.green' : 'target'
+        })
     }
 
     onDidRenameFiles(event: FileRenameEvent) {
@@ -88,13 +103,11 @@ export class AndroidStream extends Stream {
     // MARK: Scheme
 
     async chooseScheme(options: {
-        release: boolean,
         abortHandler?: AbortHandler
     }): Promise<Scheme | undefined> {
         const scheme = await chooseScheme({
             projectPath: projectDirectory!,
             stream: this,
-            release: options.release,
             abortHandler: options.abortHandler
         })
         if (!scheme) return undefined
@@ -108,7 +121,6 @@ export class AndroidStream extends Stream {
     }
     
     async getSelectedSchemeOrChoose(options: {
-        release: boolean,
         abortHandler?: AbortHandler
     }): Promise<Scheme | undefined> {
         const selectedScheme = AndroidStreamConfig.selectedScheme({ projectPath: projectDirectory! })
@@ -116,7 +128,6 @@ export class AndroidStream extends Stream {
         return await chooseScheme({
             projectPath: projectDirectory!,
             stream: this,
-            release: options.release,
             abortHandler: options.abortHandler
         })
     }
@@ -125,7 +136,7 @@ export class AndroidStream extends Stream {
 
     async buildDebug() {
 		await super.buildDebug()
-        const scheme = await this.getSelectedSchemeOrChoose({ release: false })
+        const scheme = await this.getSelectedSchemeOrChoose({})
         if (!scheme) return
         await buildCommand(this, scheme)
     }
@@ -145,6 +156,11 @@ export class AndroidStream extends Stream {
 
     async debugActionItems(): Promise<Dependency[]> { return [] }
     async debugOptionItems(): Promise<Dependency[]> { return [] }
+    async defaultDebugActionItems(): Promise<Dependency[]> {
+		let items = await super.defaultDebugActionItems()
+        items.push(this.schemeElement())
+        return items
+	}
     async releaseItems(): Promise<Dependency[]> { return [] }
     async projectItems(): Promise<Dependency[]> { return [] }
     async maintenanceItems(): Promise<Dependency[]> { return [] }
