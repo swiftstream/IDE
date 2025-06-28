@@ -82,10 +82,10 @@ export class AndroidStreamConfig {
 
     static async askForCompileSDK(): Promise<string | undefined> {
         return await window.showQuickPick([
-            '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35'
+            '35', '34', '33', '32', '31', '30', '29', '28', '27', '26', '25', '24'
         ], {
             title: 'Android Compile SDK Version',
-            placeHolder: `Choose Android SDK Version`
+            placeHolder: `Choose Android Compile SDK Version`
         })
     }
 
