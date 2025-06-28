@@ -254,6 +254,13 @@ export class AndroidStreamConfig {
         return fs.existsSync(AndroidStreamConfig.defaultPath({ projectPath: options.projectPath }))
     }
 
+    public static packageMode(options: {
+        projectPath: string
+    }): PackageMode | undefined {
+        let config = new AndroidStreamConfig({ projectPath: options.projectPath })
+        return config.config?.packageMode
+    }
+
     public static schemes(options: {
         projectPath: string
     }): Scheme[] {
