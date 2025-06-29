@@ -2,7 +2,7 @@ import path from 'node:path'
 import { env } from 'process'
 import { TreeDataProvider, Event, EventEmitter, TreeItem, TreeItemCollapsibleState, ThemeIcon, ThemeColor, Command, Disposable, Uri, workspace, commands, TreeViewExpansionEvent, window } from 'vscode'
 import { isBuildingDebug, isBuildingRelease, isHotRebuildEnabled, isClearingCache, isClearedCache, currentLoggingLevel, isTesting, isTestable, isRestartingLSP, isRestartedLSP, isClearLogBeforeBuildEnabled, isResolvingPackages } from './streams/stream'
-import { extensionContext, ExtensionStream, extensionStream, isInContainer, currentStream, embeddedStream } from './extension'
+import { extensionContext, ExtensionStream, extensionStream, isInContainer, currentStream, embeddedStream, androidStream } from './extension'
 import { openDocumentInEditorOnLine } from './helpers/openDocumentInEditor'
 import { isCIS } from './helpers/language'
 import { currentToolchain, pendingNewToolchain } from './toolchain'
@@ -193,28 +193,81 @@ export class SidebarTreeView implements TreeDataProvider<Dependency> {
 		}
 		if (element == null) {
 			if (currentStream) {
-				items.push(new Dependency({
-					id: SideTreeItem.Debug,
-					label: extensionStream === ExtensionStream.Embedded ? 'Build' : 'Debug',
-					version: `${workspace.name?.split('[Dev')[0] ?? ''}`,
-					state: this.expandState(SideTreeItem.Debug),
-					icon: 'coffee',
-					skipCommand: true
-				}))
-				if (extensionStream !== ExtensionStream.Embedded) {
+				if (extensionStream === ExtensionStream.Embedded) {
 					items.push(new Dependency({
-						id: SideTreeItem.Release,
-						label: 'Release',
-						state: this.expandState(SideTreeItem.Release),
-						icon: 'cloud-upload',
+						id: SideTreeItem.Debug,
+						label: 'Build',
+						version: `${workspace.name?.split('[Dev')[0] ?? ''}`,
+						state: this.expandState(SideTreeItem.Debug),
+						icon: 'coffee',
 						skipCommand: true
 					}))
+				} else if (extensionStream === ExtensionStream.Android) {
+					items.push(new Dependency({
+						id: SideTreeItem.Debug,
+						label: 'Project',
+						version: `${workspace.name?.split('[Dev')[0] ?? ''}`,
+						state: this.expandState(SideTreeItem.Debug),
+						icon: 'coffee',
+						skipCommand: true
+					}))
+					const adbItems = await androidStream!.androidADBItems()
+					if (adbItems.length > 0) {
+						items.push(new Dependency({
+							id: SideTreeItem.ADB,
+							label: 'ADB',
+							version: ``,
+							state: this.expandState(SideTreeItem.Debug),
+							icon: this.fileIcon('adb2'),
+							skipCommand: true
+						}))
+					}
+					const libItems = await androidStream!.androidLibraryItems()
+					if (libItems.length > 0) {
+						items.push(new Dependency({
+							id: SideTreeItem.GradleLibrary,
+							label: 'Gradle Library',
+							version: ``,
+							state: this.expandState(SideTreeItem.Debug),
+							icon: this.fileIcon('gradle'),
+							skipCommand: true
+						}))
+					}
+					const appItems = await androidStream!.androidAppItems()
+					if (appItems.length > 0) {
+						items.push(new Dependency({
+							id: SideTreeItem.GradleApp,
+							label: 'Gradle Application',
+							version: ``,
+							state: this.expandState(SideTreeItem.Debug),
+							icon: this.fileIcon('gradle'),
+							skipCommand: true
+						}))
+					}
 				} else {
+					items.push(new Dependency({
+						id: SideTreeItem.Debug,
+						label: 'Debug',
+						version: `${workspace.name?.split('[Dev')[0] ?? ''}`,
+						state: this.expandState(SideTreeItem.Debug),
+						icon: 'coffee',
+						skipCommand: true
+					}))
+				}
+				if (extensionStream === ExtensionStream.Embedded) {
 					items.push(new Dependency({
 						id: SideTreeItem.Device,
 						label: 'Device',
 						state: this.expandState(SideTreeItem.Device),
 						icon: 'chip',
+						skipCommand: true
+					}))
+				} else if (![ExtensionStream.Android].includes(extensionStream)) {
+					items.push(new Dependency({
+						id: SideTreeItem.Release,
+						label: 'Release',
+						state: this.expandState(SideTreeItem.Release),
+						icon: 'cloud-upload',
 						skipCommand: true
 					}))
 				}
@@ -364,6 +417,15 @@ export class SidebarTreeView implements TreeDataProvider<Dependency> {
 					icon: isBuildingRelease ? 'sync~spin::charts.green' : 'globe::charts.green'
 				}))
 				items.push(...(await currentStream.releaseItems()))
+				break
+			case SideTreeItem.GradleLibrary:
+				items.push(...(await androidStream!.androidLibraryItems()))
+				break
+			case SideTreeItem.GradleApp:
+				items.push(...(await androidStream!.androidAppItems()))
+				break
+			case SideTreeItem.ADB:
+				items.push(...(await androidStream!.androidADBItems()))
 				break
 			case SideTreeItem.Project:
 				items.push(...(await currentStream.projectItems()))
@@ -555,6 +617,7 @@ export class SidebarTreeView implements TreeDataProvider<Dependency> {
 	private expandableItems: SideTreeItem[] = [
 		SideTreeItem.Debug,
 		SideTreeItem.Release,
+		SideTreeItem.ADB,
 		SideTreeItem.Device,
 		SideTreeItem.Project,
 		SideTreeItem.Maintenance,
@@ -678,16 +741,37 @@ export enum SideTreeItem {
 		RunNgrok = 'RunNgrok',
 		HotReload = 'HotReload',
 		HotRebuild = 'HotRebuild',
+		AutoInstall = 'AutoInstall',
+		AutoRun = 'AutoRun',
 		DebugGzip = 'DebugGzip',
 		DebugBrotli = 'DebugBrotli',
 		DebugBuildMode = 'DebugBuildMode',
 		DebugTarget = 'DebugTarget',
 		AndroidTarget = 'AndroidTarget',
+		AndroidAppInstall = 'AndroidAppInstall',
+		AndroidAppInstallAndRun = 'AndroidAppInstallAndRun',
+		AndroidAppRun = 'AndroidAppRun',
 	Release = 'Release',
 		BuildRelease = 'BuildRelease',
 		RunRelease = 'RunRelease',
 		ReleaseBuildMode = 'ReleaseBuildMode',
 		ReleaseTarget = 'ReleaseTarget',
+	GradleLibrary = 'GradleLibrary',
+		GradleLibraryGenerate = 'GradleLibraryGenerate',
+		GradleLibraryGradleWGenerate = 'GradleLibraryGradleWGenerate',
+		GradleWLibraryAssembleDebug = 'GradleWLibraryAssembleDebug',
+		GradleWLibraryAssembleRelease = 'GradleWLibraryAssembleRelease',
+	GradleApp = 'GradleApp',
+		GradleAppGenerate = 'GradleAppGenerate',
+		GradleAppGradleWGenerate = 'GradleAppGradleWGenerate',
+		GradleAppGradleWAssembleDebug = 'GradleAppGradleWAssembleDebug',
+		GradleAppGradleWAssembleRelease = 'GradleAppGradleWAssembleRelease',
+	ADB = 'ADB',
+		ADBMode = 'ADBMode',
+		ADBPairDevice = 'ADBPairDevice',
+		ADBDevice = 'ADBDevice',
+		ADBDevices = 'ADBDevices',
+		ADBEmulators = 'ADBEmulators',
 	Device = 'Device',
 		DeviceFlash = 'DeviceFlash',
 		DeviceSimulator = 'DeviceSimulator',
