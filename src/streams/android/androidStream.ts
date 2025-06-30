@@ -10,13 +10,18 @@ import { buildCommand, hotRebuildSwift } from './commands/build'
 import { ReadElf } from '../../readelf'
 import { AbortHandler } from '../../bash'
 import { AndroidStreamConfig, chooseScheme, PackageMode, Scheme, SchemeBuildConfiguration } from '../../androidStreamConfig'
+import { Gradle } from '../../gradle'
 
 export class AndroidStream extends Stream {
     readelf: ReadElf
+    gradleLibrary: Gradle
+    gradleApp: Gradle
 
     constructor(overrideConfigure: boolean = false) {
         super(true)
         this.readelf = new ReadElf(this)
+        this.gradleLibrary = new Gradle(this, GradleFolder.Library)
+        this.gradleApp = new Gradle(this, GradleFolder.Android)
         if (!overrideConfigure) this.configure()
     }
 
