@@ -11,11 +11,20 @@ import { ReadElf } from '../../readelf'
 import { AbortHandler } from '../../bash'
 import { AndroidStreamConfig, chooseScheme, PackageMode, Scheme, SchemeBuildConfiguration } from '../../androidStreamConfig'
 import { Gradle } from '../../gradle'
+import { GradleFolder } from '../../enums/GradleFolder'
+import { AndroidLibraryProject } from '../../androidLibraryProject'
+import { DevContainerConfig } from '../../devContainerConfig'
+import { AndroidAppProject } from '../../androidAppProject'
 
 export class AndroidStream extends Stream {
     readelf: ReadElf
     gradleLibrary: Gradle
     gradleApp: Gradle
+
+    isAutoInstallEnabled = false
+    isAutoRunEnabled = false
+    isGeneratingLibProject = false
+    isGeneratingAppProject = false
 
     constructor(overrideConfigure: boolean = false) {
         super(true)
@@ -65,6 +74,18 @@ export class AndroidStream extends Stream {
     registerCommands() {
         super.registerCommands()
         extensionContext.subscriptions.push(commands.registerCommand(this.schemeElement().id, async () => await this.chooseScheme({}) ))
+        const types = [GradleFolder.Android, GradleFolder.Library]
+        const configurations = [SchemeBuildConfiguration.Debug, SchemeBuildConfiguration.Release]
+        for (let t = 0; t < types.length; t++) {
+            const type = types[t]
+            extensionContext.subscriptions.push(commands.registerCommand(this.generateProjectElement({ type: type }).id, async () => await this.generateGradleProject({ type: type }) ))
+            extensionContext.subscriptions.push(commands.registerCommand(this.generateGradleWrapperElement({ type: type }).id, async () => await this.prepareGradleW({ type: type }) ))
+            extensionContext.subscriptions.push(commands.registerCommand(this.gradleWAssembleElement({ type: type }).id, async () => await this.gradleWAssemble({ type: type }) ))
+            for (let c = 0; c < configurations.length; c++) {
+                const configuration = configurations[c]
+                
+            }
+        }
     }
 
     schemeElement = () => {
@@ -81,6 +102,26 @@ export class AndroidStream extends Stream {
             icon: scheme ? scheme.buildConfiguration == SchemeBuildConfiguration.Debug ? 'target::charts.orange' : 'target::charts.green' : 'target'
         })
     }
+    generateProjectElement = (options: { type: GradleFolder }) => new Dependency({
+        id: options.type === GradleFolder.Library ? SideTreeItem.GradleLibGenerate : SideTreeItem.GradleAppGenerate,
+        label: (options.type === GradleFolder.Library ? this.isGeneratingLibProject : this.isGeneratingAppProject) ? 'Generating Project' : 'Generate Project',
+        version: '',
+        icon: (options.type === GradleFolder.Library ? this.isGeneratingLibProject : this.isGeneratingAppProject) ? 'sync~spin::charts.green' : sidebarTreeView?.fileIcon('hammer')
+    })
+    generateGradleWrapperElement = (options: { type: GradleFolder }) => new Dependency({
+        id: options.type === GradleFolder.Library ? SideTreeItem.GradleLibGenerateGradleW : SideTreeItem.GradleAppGenerateGradleW,
+        label: this.gradle(options.type).isGeneratingWrapper ? 'Making Gradle Wrapper' : 'Make Gradle Wrapper',
+        version: '',
+        icon: this.gradle(options.type).isGeneratingWrapper ? 'sync~spin::charts.green' : sidebarTreeView?.fileIcon('hammer')
+    })
+    gradleWAssembleElement = (options: { type: GradleFolder }) => new Dependency({
+        id: options.type === GradleFolder.Library
+            ? SideTreeItem.GradleWLibAssemble
+            : SideTreeItem.GradleWAppAssemble,
+        label: this.gradle(options.type).wrapper.isAssembling ? 'Assembling' : 'Assemble',
+        version: `${this.selectedScheme()?.buildConfiguration ?? ''}`,
+        icon: this.gradle(options.type).wrapper.isAssembling ? 'sync~spin::charts.green' : sidebarTreeView?.fileIcon('hammer')
+    })
 
     onDidRenameFiles(event: FileRenameEvent) {
         super.onDidRenameFiles(event)
@@ -89,7 +130,18 @@ export class AndroidStream extends Stream {
 
     onDidDeleteFiles(event: FileDeleteEvent) {
         super.onDidDeleteFiles(event)
-
+        for (let f = 0; f < event.files.length; f++) {
+            const path = event.files[f]
+            if (path.path === this.gradleApp.cwd) {
+                sidebarTreeView?.refresh()
+            } else if (path.path === this.gradleApp.wrapper.cwd) {
+                sidebarTreeView?.refresh()
+            } else if (path.path === this.gradleLibrary.cwd) {
+                sidebarTreeView?.refresh()
+            } else if (path.path === this.gradleLibrary.wrapper.cwd) {
+                sidebarTreeView?.refresh()
+            }
+        }
     }
         
     async onDidSaveTextDocument(document: TextDocument): Promise<boolean> {
@@ -104,7 +156,106 @@ export class AndroidStream extends Stream {
     async globalKeyRun() {
         window.showErrorMessage(`Run key binding not assigned`)
     }
-        
+
+    // MARK: Gradle
+
+    async generateGradleProject(options: {
+        type: GradleFolder,
+        targets?: string[],
+        abortHandler?: AbortHandler
+    }): Promise<boolean> {
+        switch (options.type) {
+            case GradleFolder.Android:
+                if (this.isGeneratingAppProject) {
+                    options.abortHandler?.abort()
+                    return false
+                }
+                this.isGeneratingAppProject = true
+                sidebarTreeView?.refresh()
+                break
+            case GradleFolder.Library:
+                if (this.isGeneratingLibProject) {
+                    options.abortHandler?.abort()
+                    return false
+                }
+                this.isGeneratingLibProject = true
+                sidebarTreeView?.refresh()
+                break
+            default:
+                options.abortHandler?.abort()
+                return false
+        }
+        const swiftVersion = DevContainerConfig.swiftVersion()
+        const swiftVersionString = `${swiftVersion.major}.${swiftVersion.minor}.${swiftVersion.patch}`
+        const targets = options.targets ?? await this.swift.getLibraryProducts({
+            fresh: true,
+            abortHandler: options.abortHandler
+        })
+        if (targets.length === 0) {
+            window.showErrorMessage(`Unable to find products with type == library in the Package.swift`)
+            options.abortHandler?.abort()
+            return false
+        }
+        const streamConfig = new AndroidStreamConfig({ projectPath: projectDirectory! })
+        switch (options.type) {
+            case GradleFolder.Android:
+                AndroidAppProject.generateIfNeeded({
+                    projectPath: projectDirectory!,
+                    package: streamConfig.config.packageName,
+                    name: streamConfig.config.name,
+                    targets: targets,
+                    compileSdk: streamConfig.config.compileSDK,
+                    minSdk: streamConfig.config.minSDK,
+                    javaVersion: streamConfig.config.javaVersion,
+                    swiftVersion: swiftVersionString
+                })
+                this.isGeneratingAppProject = false
+                sidebarTreeView?.refresh()
+                print(`✨ Successfully generated 'Application' project`)
+                return true
+            case GradleFolder.Library:
+                AndroidLibraryProject.generateIfNeeded({
+                    projectPath: projectDirectory!,
+                    package: streamConfig.config.packageName,
+                    name: streamConfig.config.name,
+                    targets: targets,
+                    compileSdk: streamConfig.config.compileSDK,
+                    minSdk: streamConfig.config.minSDK,
+                    javaVersion: streamConfig.config.javaVersion,
+                    swiftVersion: swiftVersionString
+                })
+                this.isGeneratingLibProject = false
+                sidebarTreeView?.refresh()
+                print(`✨ Successfully generated 'Library' project`)
+                return true
+            default:
+                window.showErrorMessage(`generateGradleProject was called for unknown type: ${options.type}`)
+                options.abortHandler?.abort()
+                return false
+        }
+    }
+
+    async prepareGradleW(options: {
+        type: GradleFolder,
+        abortHandler?: AbortHandler
+    }) {
+        await this.gradle(options.type).generateWrapper({ reveal: true })
+    }
+    
+    // MARK: GradleW
+
+    async gradleWAssemble(options: {
+        type: GradleFolder,
+        abortHandler?: AbortHandler
+    }) {
+        let configuration = this.selectedScheme()?.buildConfiguration
+        if (!configuration) {
+            configuration = (await this.getSelectedSchemeOrChoose({}))?.buildConfiguration
+        }
+        if (!configuration) return
+        await this.gradle(options.type).wrapper.assemble({ configuration: configuration })
+    }
+
     // MARK: Scheme
 
     async chooseScheme(options: {
@@ -124,11 +275,13 @@ export class AndroidStream extends Stream {
         })
         sidebarTreeView?.refresh()
     }
+
+    selectedScheme = (): Scheme | undefined => AndroidStreamConfig.selectedScheme({ projectPath: projectDirectory! })
     
     async getSelectedSchemeOrChoose(options: {
         abortHandler?: AbortHandler
     }): Promise<Scheme | undefined> {
-        const selectedScheme = AndroidStreamConfig.selectedScheme({ projectPath: projectDirectory! })
+        const selectedScheme = this.selectedScheme()
         if (selectedScheme) return selectedScheme
         return await chooseScheme({
             projectPath: projectDirectory!,
@@ -159,14 +312,130 @@ export class AndroidStream extends Stream {
 
     // MARK: Side Bar Tree View Items
 
-    async debugActionItems(): Promise<Dependency[]> { return [] }
-    async debugOptionItems(): Promise<Dependency[]> { return [] }
     async defaultDebugActionItems(): Promise<Dependency[]> {
 		let items = await super.defaultDebugActionItems()
         items.push(this.schemeElement())
         return items
 	}
+    async debugActionItems(): Promise<Dependency[]> {
+        let items = await super.debugActionItems()
+        const packageMode = AndroidStreamConfig.packageMode({ projectPath: projectDirectory! })
+        if (packageMode === PackageMode.App) {
+            items.push(new Dependency({
+                id: SideTreeItem.ADBDevice,
+                label: 'Device',
+                version: 'Not selected',
+                icon: 'device-mobile'
+            }))
+        }
+        items.push(new Dependency({
+            id: SideTreeItem.BuildDebug,
+            tooltip: 'Cmd+B or Ctrl+B',
+            label: isBuildingDebug || this.isAnyHotBuilding() ? this.isAnyHotBuilding() ? 'Hot Rebuilding' : 'Building' : 'Build',
+            icon: isBuildingDebug || this.isAnyHotBuilding() ? this.isAnyHotBuilding() ? 'sync~spin::charts.orange' : 'sync~spin::charts.green' : sidebarTreeView?.fileIcon('hammer')
+        }))
+        if (packageMode === PackageMode.App) {
+            items.push(new Dependency({
+                id: SideTreeItem.AndroidAppInstall,
+                label: 'Install',
+                version: '',
+                icon: 'remote'
+            }))
+            items.push(new Dependency({
+                id: SideTreeItem.AndroidAppRun,
+                label: 'Run',
+                version: '',
+                icon: 'run'
+            }))
+            items.push(new Dependency({
+                id: SideTreeItem.AndroidAppInstallAndRun,
+                label: 'Install & Run',
+                version: '',
+                icon: 'run-above'
+            }))
+        }
+        return items
+    }
+    
+    async debugOptionItems(): Promise<Dependency[]> {
+        let items = await super.debugOptionItems()
+        const packageMode = AndroidStreamConfig.packageMode({ projectPath: projectDirectory! })
+        if (packageMode === PackageMode.App) {
+            items.push(new Dependency({
+                id: SideTreeItem.AutoInstall,
+                label: 'Install after build',
+                version: this.isAutoInstallEnabled ? 'Enabled' : 'Disabled',
+                icon: this.isAutoInstallEnabled ? 'pass::charts.green' : 'circle-large-outline'
+            }))
+            items.push(new Dependency({
+                id: SideTreeItem.AutoRun,
+                label: 'Run after install',
+                version: this.isAutoRunEnabled ? 'Enabled' : 'Disabled',
+                icon: this.isAutoRunEnabled ? 'pass::charts.green' : 'circle-large-outline'
+            }))
+        }
+        return items
+    }
     async releaseItems(): Promise<Dependency[]> { return [] }
+    
+    gradle = (type: GradleFolder) => type === GradleFolder.Android ? this.gradleApp : this.gradleLibrary
+
+    private async gradleItems(options: { type: GradleFolder }): Promise<Dependency[]> {
+        const gradle = this.gradle(options.type)
+        let items: Dependency[] = []
+        if (!gradle.isFolderExists()) {
+            items.push(this.generateProjectElement({ type: options.type }))
+        } else if (!gradle.wrapper.isExists()) {
+            items.push(this.generateGradleWrapperElement({ type: options.type }))
+        } else {
+            items.push(this.gradleWAssembleElement({ type: options.type }))
+        }
+        return items
+    }
+    
+    async androidLibraryItems(): Promise<Dependency[]> {
+		let items: Dependency[] = []
+		items.push(...(await this.gradleItems({ type: GradleFolder.Library })))
+		return items
+	}
+    async androidAppItems(): Promise<Dependency[]> {
+		let items: Dependency[] = []
+        const packageMode = AndroidStreamConfig.packageMode({ projectPath: projectDirectory! })
+        if (packageMode === PackageMode.App) {
+            items.push(...(await this.gradleItems({ type: GradleFolder.Android })))
+        }
+		return items
+	}
+    async androidADBItems(): Promise<Dependency[]> {
+		let items: Dependency[] = []
+        const packageMode = AndroidStreamConfig.packageMode({ projectPath: projectDirectory! })
+        if (packageMode !== PackageMode.App) { return items }
+        items.push(new Dependency({
+            id: SideTreeItem.ADBMode,
+            label: 'Mode',
+            version: 'Not selected',
+            icon: 'arrow-swap'
+        }))
+        items.push(new Dependency({
+            id: SideTreeItem.ADBPairDevice,
+            label: 'Pair device',
+            version: '',
+            icon: 'clippy'
+        }))
+        items.push(new Dependency({
+            id: SideTreeItem.ADBEmulators,
+            label: 'Emulators',
+            version: '',
+            icon: 'server-environment'
+        }))
+        items.push(new Dependency({
+            id: SideTreeItem.ADBDevices,
+            label: 'Devices',
+            version: '',
+            icon: 'device-mobile'
+        }))
+		return items
+	}
     async projectItems(): Promise<Dependency[]> { return [] }
     async maintenanceItems(): Promise<Dependency[]> { return [] }
     async settingsItems(): Promise<Dependency[]> { return [] }

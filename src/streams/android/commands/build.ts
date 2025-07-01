@@ -1,6 +1,6 @@
 import { window } from 'vscode'
 import { AndroidLibraryProject } from '../../../androidLibraryProject'
-import { AndroidStreamConfig, PackageMode, Scheme, SoMode } from '../../../androidStreamConfig'
+import { AndroidStreamConfig, Scheme } from '../../../androidStreamConfig'
 import { resolveSwiftDependencies } from '../../../commands/build/resolveSwiftDependencies'
 import { restartLSPCommand } from '../../../commands/restartLSP'
 import { DevContainerConfig } from '../../../devContainerConfig'
@@ -11,7 +11,7 @@ import { allSwiftDroidBuildTypes, SwiftBuildType } from '../../../swift'
 import { buildStatus, isBuildingDebug, isHotBuildingSwift, LogLevel, print, status, StatusType } from '../../stream'
 import { AndroidStream, DroidBuildArch } from '../androidStream'
 import { buildExecutableTarget } from './build/buildExecutableTarget'
-import path from 'path'
+import { GradleFolder } from '../../../enums/GradleFolder'
 
 let hasRestartedLSP = false
 
@@ -87,16 +87,11 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
         const swiftVersion = DevContainerConfig.swiftVersion()
         const swiftVersionString = `${swiftVersion.major}.${swiftVersion.minor}.${swiftVersion.patch}`
         print('🔳 Phase 4: Create or repair Library project', LogLevel.Verbose)
-        AndroidLibraryProject.generateIfNeeded({
-            projectPath: projectDirectory!,
-            package: streamConfig.config.packageName,
-            name: streamConfig.config.name,
+        if (!await stream.generateGradleProject({
+            type: GradleFolder.Library,
             targets: targets,
-            compileSdk: streamConfig.config.compileSDK,
-            minSdk: streamConfig.config.minSDK,
-            javaVersion: streamConfig.config.javaVersion,
-            swiftVersion: swiftVersionString
-        })
+            abortHandler: abortHandler
+        })) return
         // Phase 5: Proceed Gradle targets
         print('🔳 Phase 5: Proceed Gradle targets', LogLevel.Verbose)
         AndroidLibraryProject.proceedTargets({
