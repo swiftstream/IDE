@@ -211,7 +211,6 @@ export class AndroidStream extends Stream {
                 })
                 this.isGeneratingAppProject = false
                 sidebarTreeView?.refresh()
-                print(`✨ Successfully generated 'Application' project`)
                 return true
             case GradleFolder.Library:
                 AndroidLibraryProject.generateIfNeeded({
@@ -226,7 +225,6 @@ export class AndroidStream extends Stream {
                 })
                 this.isGeneratingLibProject = false
                 sidebarTreeView?.refresh()
-                print(`✨ Successfully generated 'Library' project`)
                 return true
             default:
                 window.showErrorMessage(`generateGradleProject was called for unknown type: ${options.type}`)
