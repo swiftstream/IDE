@@ -283,7 +283,7 @@ export class AndroidLibraryProject {
             .filter(entry => entry.isDirectory())
             .map(entry => entry.name)
         // Determine which folders should be removed
-        const foldersToRemove = subfolders.filter(folder => !options.targets.map(x => x.toLowerCase()).includes(folder))
+        const foldersToRemove = subfolders.filter(folder => ![...options.targets.map(x => x.toLowerCase()), 'gradle', 'build', '.git'].includes(folder))
         if (foldersToRemove.length > 0) {
             print(`🧹 Removing obsolete submodules`)
             // Delete redundant folders
