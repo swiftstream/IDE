@@ -2,7 +2,7 @@ import { ChildProcessWithoutNullStreams, exec, spawn } from 'child_process'
 import { print } from './streams/stream'
 import { LogLevel } from './streams/stream'
 import { TimeMeasure } from './helpers/timeMeasureHelper'
-import { TaskProvider, window } from 'vscode'
+import { window } from 'vscode'
 import { CancellableTaskRunner } from './embeddedBuildTaskRunner'
 
 export class Bash {
