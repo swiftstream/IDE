@@ -60,7 +60,7 @@ export async function mountNewItemCommand() {
                     return `Path should be absolute`
                 } else if (p.trimEnd() === '/mnt' || p.trimEnd() === '/mnt/') {
                     return `Please complete the path`
-                } else if (p.trimEnd() === '/workspace' || p.trimEnd() === '/workspace/') {
+                } else if (p.trimEnd() === '/workspaces' || p.trimEnd() === '/workspaces/') {
                     return `Please complete the path`
                 }
                 return null
@@ -81,11 +81,11 @@ export async function mountNewItemCommand() {
                     return `Path can't be empty`
                 } else if (!path.isAbsolute(p)) {
                     return `Path should be absolute`
-                } else if (!p.startsWith('/mnt/') && !p.startsWith('/workspace/')) {
-                    return `Path should start with /mnt or /workspace`
+                } else if (!p.startsWith('/mnt/') && !p.startsWith('/workspaces/')) {
+                    return `Path should start with /mnt or /workspaces`
                 } else if (p.trimEnd() === '/mnt' || p.trimEnd() === '/mnt/') {
                     return `Please complete the path`
-                } else if (p.trimEnd() === '/workspace' || p.trimEnd() === '/workspace/') {
+                } else if (p.trimEnd() === '/workspaces' || p.trimEnd() === '/workspaces/') {
                     return `Please complete the path`
                 } else if (p.includes('..')) {
                     return `Invalid path`
