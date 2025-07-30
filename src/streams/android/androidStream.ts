@@ -91,14 +91,15 @@ export class AndroidStream extends Stream {
 
     schemeElement = () => {
         const scheme = AndroidStreamConfig.selectedScheme({ projectPath: projectDirectory! })
+        const isDebug = scheme?.buildConfiguration === SchemeBuildConfiguration.Debug
         let details = ''
         if (scheme?.buildConfiguration) {
-            details = scheme.buildConfiguration === SchemeBuildConfiguration.Debug ? 'Debug' : 'Release'
+            details = isDebug ? 'Debug' : 'Release'
         }
         return new Dependency({
             id: SideTreeItem.AndroidTarget,
             label: scheme?.title ?? 'Scheme',
-            version: details,
+            version: isDebug ? scheme?.title.toLowerCase().includes('debug') === true ? '' : details : scheme?.title.toLowerCase().includes('release') === true ? '' : details,
             tooltip: `${scheme ? scheme.buildConfiguration == SchemeBuildConfiguration.Debug ? 'Debug ' : 'Release ' : ''}Scheme for Build and Run actions`,
             icon: scheme ? scheme.buildConfiguration == SchemeBuildConfiguration.Debug ? 'target::charts.orange' : 'target::charts.green' : 'target'
         })
