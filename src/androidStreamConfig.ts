@@ -64,10 +64,10 @@ export class AndroidStreamConfig {
 
     static async askForJavaLibraryNamespace(): Promise<string | undefined> {
         return await window.showInputBox({
-            title: 'Java Library Namespace',
+            title: 'Java Namespace',
             value: '',
             placeHolder: 'e.g. com.my.lib',
-            prompt: 'Choose the namespace for your java library'
+            prompt: 'Choose the namespace for your java project'
         })
     }
 
