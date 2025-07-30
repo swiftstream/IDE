@@ -375,6 +375,7 @@ export class Swift {
         release: boolean,
         swiftArgs?: string[],
         androidSDKCompileVersion?: string,
+        androidJNILogs?: boolean,
         abortHandler: AbortHandler,
         progressHandler?: (p: string) => void
     }) {
@@ -440,12 +441,21 @@ export class Swift {
                 break
             case SwiftBuildMode.AndroidArm64:
                 args.push(...['--swift-sdk', `aarch64-unknown-linux-android${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`])
+                if (options.androidJNILogs === true) {
+                    args.push(...['-Xswiftc', '-DJNILOGS'])
+                }
                 break
             case SwiftBuildMode.AndroidArmEabi:
                 args.push(...['--swift-sdk', `armv7-unknown-linux-androideabi${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`])
+                if (options.androidJNILogs === true) {
+                    args.push(...['-Xswiftc', '-DJNILOGS'])
+                }
                 break
             case SwiftBuildMode.Androidx86_64:
                 args.push(...['--swift-sdk', `x86_64-unknown-linux-android${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`])
+                if (options.androidJNILogs === true) {
+                    args.push(...['-Xswiftc', '-DJNILOGS'])
+                }
                 break
         }
         if (!fs.existsSync(`${projectDirectory}/Package.swift`)) {

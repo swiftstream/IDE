@@ -743,6 +743,7 @@ export enum SideTreeItem {
 		HotRebuild = 'HotRebuild',
 		AutoInstall = 'AutoInstall',
 		AutoRun = 'AutoRun',
+		JNILogs = 'JNILogs',
 		DebugGzip = 'DebugGzip',
 		DebugBrotli = 'DebugBrotli',
 		DebugBuildMode = 'DebugBuildMode',
