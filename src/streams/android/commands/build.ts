@@ -1,6 +1,6 @@
 import { window } from 'vscode'
 import { AndroidLibraryProject } from '../../../androidLibraryProject'
-import { AndroidStreamConfig, Scheme } from '../../../androidStreamConfig'
+import { AndroidStreamConfig, PackageMode, Scheme, SchemeBuildConfiguration } from '../../../androidStreamConfig'
 import { resolveSwiftDependencies } from '../../../commands/build/resolveSwiftDependencies'
 import { restartLSPCommand } from '../../../commands/restartLSP'
 import { DevContainerConfig } from '../../../devContainerConfig'
@@ -8,10 +8,11 @@ import { projectDirectory, sidebarTreeView } from '../../../extension'
 import { isString } from '../../../helpers/isString'
 import { TimeMeasure } from '../../../helpers/timeMeasureHelper'
 import { allSwiftDroidBuildTypes, SwiftBuildType } from '../../../swift'
-import { buildStatus, isBuildingDebug, isHotBuildingSwift, LogLevel, print, status, StatusType } from '../../stream'
+import { buildStatus, clearStatus, isBuildingDebug, isHotBuildingSwift, LogLevel, print, status, StatusType } from '../../stream'
 import { AndroidStream, DroidBuildArch } from '../androidStream'
 import { buildExecutableTarget } from './build/buildExecutableTarget'
 import { GradleFolder } from '../../../enums/GradleFolder'
+import { AndroidAppProject } from '../../../androidAppProject'
 
 let hasRestartedLSP = false
 
@@ -40,8 +41,9 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
             window.showErrorMessage(`Unable to find products with type == library in the Package.swift`)
             return abortHandler.abort()
         }
+        let phase = 1
         // Phase 1: Resolve Swift dependencies for each build type
-        print('🔳 Phase 1: Resolve Swift dependencies for each build type', LogLevel.Verbose)
+        print(`🔳 Phase ${phase}: Resolve Swift dependencies for each build type`, LogLevel.Verbose)
         const buildTypes = allSwiftDroidBuildTypes()
         for (let i = 0; i < buildTypes.length; i++) {
 			const type = buildTypes[i]
@@ -56,18 +58,37 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
 			})
 		}
         const streamConfig = new AndroidStreamConfig({ projectPath: projectDirectory! })
+        const release = scheme.buildConfiguration == SchemeBuildConfiguration.Release
         // Phase 2: Retrieve Swift targets
-        print('🔳 Phase 2: Retrieve Swift targets', LogLevel.Verbose)
-        await stream.chooseTarget({ release: false, abortHandler: abortHandler })
+        phase += 1
+        print(`🔳 Phase ${++phase}: Retrieve Swift targets`, LogLevel.Verbose)
+        await stream.chooseTarget({ release: release, abortHandler: abortHandler })
         if (!stream.swift.selectedDebugTarget) 
             throw `Please select Swift target to build`
-        // Phase 3: Build executable targets
+        // Phase 3: Build preprocessing
+        if (streamConfig.config.packageMode == PackageMode.App) {
+            phase += 1
+            print(`🔳 Phase ${++phase}: Prebuild app to retrieve metadata`, LogLevel.Verbose)
+            print({
+                detailed: `🧱 Building metadata swift target`,
+                verbose: `🧱 Building metadata swift target in ${release ? 'release' : 'debug'} mode`
+            })
+            buildStatus(`\`metadata\` swift target: building`)
+            const metadataMeasure = new TimeMeasure()
+            await stream.swift.androidBuildMetadata({ release: release })
+            metadataMeasure.finish()
+            if (abortHandler.isCancelled) return
+            print(`🧱 Built metadata swift target in ${metadataMeasure.time}ms`, LogLevel.Detailed)
+            clearStatus()
+        }
+        // Phase 4: Build executable targets
         const shouldRestartLSP = !hasRestartedLSP || !stream.isDebugBuilt({
             target: stream.swift.selectedDebugTarget,
             arch: DroidBuildArch.Arm64,
             androidSDKCompileVersion: `${streamConfig.config.compileSDK}`
         })
-        print('🔳 Phase 3: Build executable targets', LogLevel.Verbose)
+        phase += 1
+        print(`🔳 Phase ${phase}: Build executable targets`, LogLevel.Verbose)
         // Only one for current device, or all without device
         const archs = stream.currentBuildArch ? [stream.currentBuildArch] : [DroidBuildArch.Arm64, DroidBuildArch.ArmEabi, DroidBuildArch.x86_64]
         for (let i = 0; i < archs.length; i++) {
@@ -76,7 +97,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
                 type: SwiftBuildType.Droid,
                 target: stream.swift.selectedDebugTarget,
                 arch: arch,
-                release: false,
+                release: release,
                 swiftArgs: scheme.swiftArgs,
                 androidSDKCompileVersion: `${streamConfig.config.compileSDK}`,
                 androidJNILogs: stream.isJNILogsEnabled,
@@ -84,17 +105,26 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
                 abortHandler: abortHandler
             })
         }
-        // Phase 4: Create or repair Library project
+        // Phase 5: Create or repair Library project
         const swiftVersion = DevContainerConfig.swiftVersion()
         const swiftVersionString = `${swiftVersion.major}.${swiftVersion.minor}.${swiftVersion.patch}`
-        print('🔳 Phase 4: Create or repair Library project', LogLevel.Verbose)
+        phase += 1
+        print(`🔳 Phase ${phase}: Create or repair Library project`, LogLevel.Verbose)
         if (!await stream.generateGradleProject({
             type: GradleFolder.Library,
             targets: targets,
             abortHandler: abortHandler
-        })) return
-        // Phase 5: Proceed Gradle targets
-        print('🔳 Phase 5: Proceed Gradle targets', LogLevel.Verbose)
+        })) throw `Unable to generate Library project`
+        if (streamConfig.config.packageMode == PackageMode.App) {
+            if (!await stream.generateGradleProject({
+                type: GradleFolder.Application,
+                targets: targets,
+                abortHandler: abortHandler
+            })) throw `Unable to generate Android project`
+        }
+        // Phase 6: Proceed Gradle targets
+        phase += 1
+        print(`🔳 Phase ${phase}: Proceed Gradle targets`, LogLevel.Verbose)
         AndroidLibraryProject.proceedTargets({
             projectPath: projectDirectory!,
             targets: targets
@@ -108,18 +138,20 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
                 target: target
             })
         }
-        // Phase 6: Copy .so files into Library project
-        print('🔳 Phase 6: Copy .so files', LogLevel.Verbose)
+        // Phase 7: Copy .so files into Library project
+        phase += 1
+        print(`🔳 Phase ${phase}: Copy .so files`, LogLevel.Verbose)
         AndroidLibraryProject.copySoFiles({
             projectPath: projectDirectory!,
-            release: false,
+            release: release,
             targets: targets,
             archs: archs,
             scheme: scheme,
             streamConfig: streamConfig
         })
-        // Phase 7: Proceed .so files
-        print('🔳 Phase 7: Proceed .so files', LogLevel.Verbose)
+        // Phase 8: Proceed .so files
+        phase += 1
+        print(`🔳 Phase ${phase}: Proceed .so files`, LogLevel.Verbose)
         for (let a = 0; a < archs.length; a++) {
             const arch = archs[a]
             await AndroidLibraryProject.proceedSoDependencies(stream, {
@@ -134,7 +166,49 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
             projectPath: projectDirectory!,
             targets: targets
         })
-        // TODO: Android App project?
+        // Phase 9: Proceed dependencies
+        phase += 1
+        print(`🔳 Phase ${phase}: Create or repair Library project`, LogLevel.Verbose)
+        if (streamConfig.config.packageMode == PackageMode.App) {
+            const droidVersion = stream.swift.findResolvedDroidVersion()
+            const gradleDependencies = await stream.swift.androidGetGradleDependencies({ release: release }) ?? []
+            if (droidVersion) {
+                print(`📦 Current \`droid\` version: ${droidVersion}`, LogLevel.Verbose)
+                gradleDependencies.push(`implementation("com.github.swifdroid:droid:${droidVersion}")`)
+            }
+            if (gradleDependencies.length > 0) {
+                AndroidLibraryProject.proceedDependencies(stream, {
+                    projectPath: projectDirectory!,
+                    streamConfig: streamConfig,
+                    dependencies: gradleDependencies
+                })
+            }
+            const manifest = await stream.swift.androidManifest({ release: release })
+            AndroidLibraryProject.proceedManifest(stream, {
+                projectPath: projectDirectory!,
+                streamConfig: streamConfig,
+                manifest: manifest
+            })
+            const activityBodies = await stream.swift.androidGetAllActivityBodies({ release: release })
+            AndroidLibraryProject.proceedActivityBodies(stream, {
+                projectPath: projectDirectory!,
+                streamConfig: streamConfig,
+                activityBodies: activityBodies
+            })
+        }
+        if (!stream.gradle(GradleFolder.Application).wrapper.isExists()) {
+            print(`🧱 Preparing gradle wrapper`, LogLevel.Detailed)
+            buildStatus(`preparing gradle wrapper`)
+            const gradlewMeasure = new TimeMeasure()
+            await stream.prepareGradleW({
+                type: GradleFolder.Application,
+                wrapIntoTask: true,
+                abortHandler: abortHandler
+            })
+            gradlewMeasure.finish()
+            if (abortHandler.isCancelled) return
+            print(`🧱 Prepared gradle wrapper in ${gradlewMeasure.time}ms`, LogLevel.Detailed)
+        }
         measure.finish()
         if (abortHandler.isCancelled) return
         status('check', `Build Succeeded in ${measure.time}ms`, StatusType.Success)
