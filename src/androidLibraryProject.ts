@@ -309,8 +309,8 @@ export class AndroidLibraryProject {
             if (!elfResult.success) {
                 throw elfResult.error ?? new Error(`Unable to extract dependencies from lib${target}.so`)
             }
-            const begin = '// managed by swiftstreamide: dependencies-begin'
-            const end = '// managed by swiftstreamide: dependencies-end'
+            const begin = '// managed by swiftstreamide: so-dependencies-begin'
+            const end = '// managed by swiftstreamide: so-dependencies-end'
             const buildGradlePath = path.join(options.projectPath, 'Library', target.toLowerCase(), 'build.gradle.kts')
             const buildGradleFile = fs.readFileSync(buildGradlePath, 'utf8')
             if (!buildGradleFile.includes(begin) || !buildGradleFile.includes(end)) {
