@@ -46,9 +46,14 @@ android {
 
 dependencies {
     implementation("com.github.swifdroid.runtime-libs:core:{{swiftVersion}}")
+    // managed by swiftstreamide: so-dependencies-begin
+    
+    // managed by swiftstreamide: so-dependencies-end
+    {{#if isApp}}
     // managed by swiftstreamide: dependencies-begin
     
     // managed by swiftstreamide: dependencies-end
+    {{/if}}
 }
 
 allprojects {}
