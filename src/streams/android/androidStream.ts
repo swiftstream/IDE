@@ -222,7 +222,8 @@ export class AndroidStream extends Stream {
                     compileSdk: streamConfig.config.compileSDK,
                     minSdk: streamConfig.config.minSDK,
                     javaVersion: streamConfig.config.javaVersion,
-                    swiftVersion: swiftVersionString
+                    swiftVersion: swiftVersionString,
+                    isApp: streamConfig.config.packageMode == PackageMode.App
                 })
                 this.isGeneratingLibProject = false
                 sidebarTreeView?.refresh()
