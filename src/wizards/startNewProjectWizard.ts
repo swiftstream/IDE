@@ -695,13 +695,83 @@ async function createNewProjectFiles(
 					if (!fs.existsSync(sourcesFolder)) {
 						fs.mkdirSync(sourcesFolder, { recursive: true })
 					}
-					const appSourcesFolder = osPath.join(path, 'Sources', name)
-					if (!fs.existsSync(appSourcesFolder)) {
-						fs.mkdirSync(appSourcesFolder, { recursive: true })
+					function createSubfolderIfNeeded(parent: string, child: string): string {
+						let result = osPath.join(parent, child)
+						if (!fs.existsSync(result))
+							fs.mkdirSync(result, { recursive: true })
+						return result
+					}
+					[
+						createSubfolderIfNeeded(sourcesFolder, 'App'),
+						createSubfolderIfNeeded(sourcesFolder, 'AppUI'),
+						createSubfolderIfNeeded(sourcesFolder, 'AppManifest')
+					]
+					.forEach(targetFolder => {
+						function writeFile(options: {
+							folder?: string,
+							from: string,
+							to: string,
+							payload: any
+						}) {
+							fs.writeFileSync(
+								osPath.join(options.folder ?? targetFolder, options.to),
+								Handlebars.compile(readFile(osPath.join('assets', 'Sources', streamType, androidType, 'Sources', 'swift', options.from)))(options.payload)
+							)
+						}
+						const type = targetFolder.split('/').pop()
+						switch (type) {
+							case 'App':
+								writeFile({ from: 'App.hbs', to: 'App.swift', payload: { name: name, activities: ['Main'] } })
+								const activitiesFolder = createSubfolderIfNeeded(targetFolder, 'Activities')
+								writeFile({ folder: activitiesFolder, from: 'MainActivity.hbs', to: 'MainActivity.swift', payload: hbsSourcePayload })
+								break
+							case 'AppUI':
+								writeFile({ from: 'AppUI.hbs', to: 'AppUI.swift', payload: {} })
+								break
+							case 'AppManifest':
+								writeFile({ from: 'Manifest.hbs', to: 'Manifest.swift', payload: {} })
+								break
+							default: break
+						}
+					})
+					let packagePayload = {
+						swiftToolsVersion: '6.1',
+						name: name,
+						platforms: '.macOS(.v10_15)',
+						products: [
+							`.library(name: "AppUI", type: .dynamic, targets: ["AppUI"])`,
+							`.executable(name: "AppManifest", targets: ["AppManifest"])`
+						],
+						dependencies: [
+							{ package: '.package(url: "https://github.com/swifdroid/droid.git", from: "1.0.0")' }
+						],
+						targets: [
+							{
+								type: 'target',
+								name: 'AppUI',
+								dependencies: [
+									'.target(name: "App")'
+								]
+							},
+							{
+								type: 'executableTarget',
+								name: 'AppManifest',
+								dependencies: [
+									'.target(name: "App")'
+								]
+							},
+							{
+								type: 'target',
+								name: 'App',
+								dependencies: [
+									'.product(name: "Droid", package: "droid")'
+								]
+							}
+						]
 					}
 					fs.writeFileSync(
-						osPath.join(appSourcesFolder, 'App.swift'),
-						Handlebars.compile(readFile(osPath.join('assets', 'Sources', streamType, androidType, 'Sources', 'swift', 'App.hbs')))(hbsSourcePayload)
+						osPath.join(path, 'Package.swift'),
+						Handlebars.compile(readFile(osPath.join('assets', 'Sources', 'Package.hbs')))(packagePayload)
 					)
 				} else if (androidType === 'library') {
 					const sourcesFolder = osPath.join(path, 'Sources')
@@ -716,34 +786,48 @@ async function createNewProjectFiles(
 						osPath.join(appSourcesFolder, 'Library.swift'),
 						Handlebars.compile(readFile(osPath.join('assets', 'Sources', streamType, androidType, 'Sources', 'swift', 'Library.hbs')))(hbsSourcePayload)
 					)
+					let packagePayload = {
+						swiftToolsVersion: '6.1',
+						name: name,
+						platforms: '.macOS(.v10_15)',
+						products: [
+							`.library(name: "${name}", type: .dynamic, targets: ["${name}"])`
+						],
+						dependencies: [
+							{ package: '.package(url: "https://github.com/swifdroid/jni-kit.git", from: "2.0.0")' },
+							{ package: '.package(url: "https://github.com/swifdroid/AndroidLogging.git", from: "0.1.0")' },
+							{ package: '.package(url: "https://github.com/apple/swift-log.git", from: "1.6.2")' }
+						],
+						targets: [
+							{
+								type: 'target',
+								name: name,
+								dependencies: [
+									'.product(name: "JNIKit", package: "jni-kit")',
+									'.product(name: "Logging", package: "swift-log")',
+									'.product(name: "AndroidLogging", package: "AndroidLogging", condition: .when(platforms: [.android]))'
+								]
+							}
+						]
+					}
+					fs.writeFileSync(
+						osPath.join(path, 'Package.swift'),
+						Handlebars.compile(readFile(osPath.join('assets', 'Sources', 'Package.hbs')))(packagePayload)
+					)
 				}
-				let packagePayload = {
-					swiftToolsVersion: '6.0',
-					name: name,
-					platforms: '.macOS(.v10_15)',
-					products: [
-						`.library(name: "${name}", type: .dynamic, targets: ["${name}"])`
-					],
-					dependencies: [
-						{ package: '.package(url: "https://github.com/swifdroid/jni-kit.git", from: "2.0.0")' },
-						{ package: '.package(url: "https://github.com/swifdroid/AndroidLogging.git", from: "0.1.0")' },
-						{ package: '.package(url: "https://github.com/apple/swift-log.git", from: "1.6.2")' }
-					],
-					targets: [
-						{
-							type: 'target',
-							name: name,
-							dependencies: [
-								'.product(name: "JNIKit", package: "jni-kit")',
-								'.product(name: "Logging", package: "swift-log")',
-								'.product(name: "AndroidLogging", package: "AndroidLogging", condition: .when(platforms: [.android]))'
-							]
-						}
-					]
+				const sourcekitLSPFolder = osPath.join(path, '.sourcekit-lsp')
+				if (!fs.existsSync(sourcekitLSPFolder)) {
+					fs.mkdirSync(sourcekitLSPFolder)
+				}
+				let sourcekitLSPConfig = {
+					swiftPM: {
+						configuration: 'debug',
+						swiftSDK: `aarch64-unknown-linux-android${config.compileSDK}`
+					}
 				}
 				fs.writeFileSync(
-					osPath.join(path, 'Package.swift'),
-					Handlebars.compile(readFile(osPath.join('assets', 'Sources', 'Package.hbs')))(packagePayload)
+					osPath.join(sourcekitLSPFolder, 'config.json'),
+					JSON.stringify(sourcekitLSPConfig, null, '\t')
 				)
 				// Copy devcontainer files
 				await copyDevContainerFile(`Dockerfile`)
