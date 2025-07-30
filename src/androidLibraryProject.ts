@@ -365,11 +365,8 @@ export class AndroidLibraryProject {
     ]
     static foundation: string[] = [
         'lib_FoundationICU.so',
-        'libBlocksRuntime.so',
-        'libdispatch.so',
         'libFoundation.so',
-        'libiconv.so',
-        'libswiftDispatch.so'
+        'libiconv.so'
     ]
     static foundationessentials: string[] = [
         'libFoundationEssentials.so'
