@@ -236,9 +236,10 @@ export class AndroidStream extends Stream {
 
     async prepareGradleW(options: {
         type: GradleFolder,
+        wrapIntoTask?: boolean,
         abortHandler?: AbortHandler
     }) {
-        await this.gradle(options.type).generateWrapper({ reveal: true })
+        await this.gradle(options.type).generateWrapper({ reveal: true, wrapIntoTask: options.wrapIntoTask })
     }
     
     // MARK: GradleW
