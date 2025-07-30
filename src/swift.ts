@@ -63,8 +63,11 @@ export class Swift {
             env: env,
             abortHandler: options.abortHandler
         }, args)
-        if (result.stderr.length > 0)
-            throw result.stderr
+        if (result.code != 0) {
+            if (result.stderr.length > 0)
+                throw result.stderr
+            throw result.stdout
+        }
         return result.stdout
     }
 
