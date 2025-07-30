@@ -196,12 +196,24 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
                 activityBodies: activityBodies
             })
         }
-        if (!stream.gradle(GradleFolder.Application).wrapper.isExists()) {
+        if (streamConfig.config.packageMode == PackageMode.App && !stream.gradle(GradleFolder.Application).wrapper.isExists()) {
             print(`🧱 Preparing gradle wrapper`, LogLevel.Detailed)
             buildStatus(`preparing gradle wrapper`)
             const gradlewMeasure = new TimeMeasure()
             await stream.prepareGradleW({
                 type: GradleFolder.Application,
+                wrapIntoTask: true,
+                abortHandler: abortHandler
+            })
+            gradlewMeasure.finish()
+            if (abortHandler.isCancelled) return
+            print(`🧱 Prepared gradle wrapper in ${gradlewMeasure.time}ms`, LogLevel.Detailed)
+        } else if (streamConfig.config.packageMode == PackageMode.Library && !stream.gradle(GradleFolder.Library).wrapper.isExists()) {
+            print(`🧱 Preparing gradle wrapper`, LogLevel.Detailed)
+            buildStatus(`preparing gradle wrapper`)
+            const gradlewMeasure = new TimeMeasure()
+            await stream.prepareGradleW({
+                type: GradleFolder.Library,
                 wrapIntoTask: true,
                 abortHandler: abortHandler
             })
