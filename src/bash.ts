@@ -16,12 +16,16 @@ export class Bash {
             }
             exec(`/usr/bin/which ${program}`, (error, stdout, stderr) => {
                 if (error) {
-                    // console.error(`Error: ${error.message}`)
-                    // console.error(`Exit code: ${error.code}`)
-                    // console.error(`stderr: ${stderr}`)
+                    console.error(`Error: ${error.message}`)
+                    console.error(`Exit code: ${error.code}`)
+                    console.error(`stderr: ${stderr}`)
                     return resolve(undefined)
                 }
-                resolve(stdout.replace(/^\s+|\s+$/g, ''))
+                const p = stdout.replace(/^\s+|\s+$/g, '')
+                if (p && p.length > 0) {
+                    this.whichCache[program] = p
+                }
+                resolve(p)
             })
         })
     }
