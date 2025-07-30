@@ -810,6 +810,121 @@ export class Swift {
             sidebarTreeView?.refresh()
         }
     }
+
+    // MARK: - Android Metadata
+
+    // MARK: Package.resolved
+
+    findResolvedDroidVersion(): string | undefined {
+        const resolvedFilePath = `${projectDirectory}/Package.resolved`
+        if (!fs.existsSync(resolvedFilePath)) {
+            throw `No Package.resolved file in the project directory`
+        }
+        const packageResolvedString = fs.readFileSync(resolvedFilePath, 'utf8')
+        const packageResolved = JSON.parse(packageResolvedString)
+        const pins: any[] = packageResolved.pins
+        const pin = pins.find((pin: any) => {
+            if (pin.identity === 'droid') {
+                if (pin.state && pin.state.version) {
+                    return true
+                }
+            }
+            return false
+        })
+        if (pin)
+            return pin.state.version
+        return undefined
+    }
+
+    // MARK: Android
+
+    private prepcoressingBuildPath = './.build/.metadata'
+    private prepcoressingBinary = (release: boolean) => path.join(projectDirectory!, '.build', '.metadata', release ? 'release' : 'debug', 'AppManifest')
+
+    async androidBuildMetadata(options: {
+        release: boolean
+    }) {
+        if (!fs.existsSync(`${projectDirectory}/Package.swift`)) {
+            throw `No Package.swift file in the project directory`
+        }
+        const nativeArgs: string[] = [
+            'build',
+            '-Xswiftc', '-DANDROIDBUILDING',
+            '-c', options.release ? 'release' : 'debug',
+            '--build-path', this.prepcoressingBuildPath,
+            '--product', 'AppManifest'
+        ]
+        await this.execute(nativeArgs, { type: SwiftBuildType.Native })
+    }
+
+    async androidManifest(options: {
+        release: boolean
+    }): Promise<string | undefined> {
+        const prepcoressingBinaryPath = this.prepcoressingBinary(options.release)
+        if (!fs.existsSync(prepcoressingBinaryPath)) {
+            throw 'Please build the `AppManifest` target first via `androidBuildMetadata` method'
+        }
+        try {
+            const result = await this.stream.bash.execute({
+                path: prepcoressingBinaryPath,
+                description: `get manifest`,
+                cwd: projectDirectory,
+                env: env,
+                abortHandler: undefined
+            }, ['--action', 'manifest'])
+            if (result.stderr.length > 0)
+                throw result.stderr
+            return result.stdout
+        } catch (error: any) {
+            return undefined
+        }
+    }
+
+    async androidGetAllActivityBodies(options: {
+        release: boolean
+    }): Promise<Record<string, any> | undefined> {
+        const prepcoressingBinaryPath = this.prepcoressingBinary(options.release)
+        if (!fs.existsSync(prepcoressingBinaryPath)) {
+            throw 'Please build the `AppManifest` target first via `androidBuildMetadata` method'
+        }
+        try {
+            const bashResult = await this.stream.bash.execute({
+                path: prepcoressingBinaryPath,
+                description: `get all activity bodies`,
+                cwd: projectDirectory,
+                env: env,
+                abortHandler: undefined
+            }, ['--action', 'generateAllActivities'])
+            if (bashResult.stderr.length > 0)
+                throw bashResult.stderr
+            return JSON.parse(bashResult.stdout)
+        } catch (error: any) {
+            return undefined
+        }
+    }
+
+    async androidGetGradleDependencies(options: {
+        release: boolean
+    }): Promise<string[] | undefined> {
+        const prepcoressingBinaryPath = this.prepcoressingBinary(options.release)
+        if (!fs.existsSync(prepcoressingBinaryPath)) {
+            throw 'Please build the `AppManifest` target first via `androidBuildMetadata` method'
+        }
+        try {
+            const bashResult = await this.stream.bash.execute({
+                path: prepcoressingBinaryPath,
+                description: `get gradle dependencies`,
+                cwd: projectDirectory,
+                env: env,
+                abortHandler: undefined
+            }, ['--action', 'gradleDependencies'])
+            if (bashResult.stderr.length > 0)
+                throw bashResult.stderr
+            return JSON.parse(bashResult.stdout)
+        } catch (error: any) {
+            return undefined
+        }
+    }
 }
 
 class Place {
