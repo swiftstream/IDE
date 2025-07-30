@@ -40,36 +40,48 @@ export class Gradle {
 
     isGeneratingWrapper = false
     generateWrapperTask?: GradleTaskProvider | undefined
-    async generateWrapper(options?: { reveal?: boolean }): Promise<boolean> {
+    async generateWrapper(options?: { reveal?: boolean, wrapIntoTask?: boolean }): Promise<boolean> {
         if (!projectDirectory) return false
         if (this.isGeneratingWrapper) return false
-        this.generateWrapperTask = new GradleTaskProvider(
-            'gradle wrapper',
-            `cd ${this.cwd} && gradle wrapper`,
-            {
-                onStart: () => {
-                    this.isGeneratingWrapper = true
-                    sidebarTreeView?.refresh()
-                },
-                onError: (code) => {
-                    this.isGeneratingWrapper = false
-                    sidebarTreeView?.refresh()
-                },
-                onSuccess: () => {
-                    this.isGeneratingWrapper = false
-                    sidebarTreeView?.refresh()
+        return new Promise(async (resolve) => {
+            this.generateWrapperTask = new GradleTaskProvider(
+                'gradle wrapper',
+                `cd ${this.cwd} && gradle wrapper`,
+                {
+                    onStart: () => {
+                        this.isGeneratingWrapper = true
+                        sidebarTreeView?.refresh()
+                    },
+                    onError: (code) => {
+                        this.isGeneratingWrapper = false
+                        sidebarTreeView?.refresh()
+                        if (options?.wrapIntoTask === true) {
+                            resolve(false)
+                        }
+                    },
+                    onSuccess: () => {
+                        this.isGeneratingWrapper = false
+                        sidebarTreeView?.refresh()
+                        if (options?.wrapIntoTask === true) {
+                            resolve(true)
+                        }
+                    }
+                }
+            )
+            try {
+                await this.generateWrapperTask?.start()
+                if (options?.reveal === true) {
+                    this.generateWrapperTask?.reveal()
+                }
+                if (!options?.wrapIntoTask) {
+                    resolve(true)
+                }
+            } catch (error) {
+                if (!options?.wrapIntoTask) {
+                    resolve(false)
                 }
             }
-        )
-        try {
-            await this.generateWrapperTask?.start()
-            if (options?.reveal === true) {
-                this.generateWrapperTask?.reveal()
-            }
-            return true
-        } catch (error) {
-            return false
-        }
+        })
     }
 }
 
