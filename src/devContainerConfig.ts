@@ -281,7 +281,6 @@ export const generateDevcontainerJson = (
 					},
 					'lldb.library': `/swift/toolchains/${toolchain.name}/usr/lib/liblldb.so`,
 					'lldb.launch.expressions': "native",
-					'swift.disableAutoResolve': false,
 					'swift.autoGenerateLaunchConfigurations': true,
 					'swift.backgroundCompilation': false,
 					'swift.showCreateSwiftProjectInWelcomePage': false,
