@@ -31,7 +31,7 @@ export class AndroidStream extends Stream {
         super(true)
         this.readelf = new ReadElf(this)
         this.gradleLibrary = new Gradle(this, GradleFolder.Library)
-        this.gradleApp = new Gradle(this, GradleFolder.Android)
+        this.gradleApp = new Gradle(this, GradleFolder.Application)
         if (!overrideConfigure) this.configure()
     }
 
@@ -75,7 +75,7 @@ export class AndroidStream extends Stream {
     registerCommands() {
         super.registerCommands()
         extensionContext.subscriptions.push(commands.registerCommand(this.schemeElement().id, async () => await this.chooseScheme({}) ))
-        const types = [GradleFolder.Android, GradleFolder.Library]
+        const types = [GradleFolder.Application, GradleFolder.Library]
         const configurations = [SchemeBuildConfiguration.Debug, SchemeBuildConfiguration.Release]
         for (let t = 0; t < types.length; t++) {
             const type = types[t]
@@ -166,7 +166,7 @@ export class AndroidStream extends Stream {
         abortHandler?: AbortHandler
     }): Promise<boolean> {
         switch (options.type) {
-            case GradleFolder.Android:
+            case GradleFolder.Application:
                 if (this.isGeneratingAppProject) {
                     options.abortHandler?.abort()
                     return false
@@ -199,7 +199,7 @@ export class AndroidStream extends Stream {
         }
         const streamConfig = new AndroidStreamConfig({ projectPath: projectDirectory! })
         switch (options.type) {
-            case GradleFolder.Android:
+            case GradleFolder.Application:
                 AndroidAppProject.generateIfNeeded({
                     projectPath: projectDirectory!,
                     package: streamConfig.config.packageName,
@@ -383,7 +383,7 @@ export class AndroidStream extends Stream {
     }
     async releaseItems(): Promise<Dependency[]> { return [] }
     
-    gradle = (type: GradleFolder) => type === GradleFolder.Android ? this.gradleApp : this.gradleLibrary
+    gradle = (type: GradleFolder) => type === GradleFolder.Application ? this.gradleApp : this.gradleLibrary
 
     private async gradleItems(options: { type: GradleFolder }): Promise<Dependency[]> {
         const gradle = this.gradle(options.type)
@@ -407,7 +407,7 @@ export class AndroidStream extends Stream {
 		let items: Dependency[] = []
         const packageMode = AndroidStreamConfig.packageMode({ projectPath: projectDirectory! })
         if (packageMode === PackageMode.App) {
-            items.push(...(await this.gradleItems({ type: GradleFolder.Android })))
+            items.push(...(await this.gradleItems({ type: GradleFolder.Application })))
         }
 		return items
 	}
