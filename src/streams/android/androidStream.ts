@@ -79,7 +79,7 @@ export class AndroidStream extends Stream {
         const configurations = [SchemeBuildConfiguration.Debug, SchemeBuildConfiguration.Release]
         for (let t = 0; t < types.length; t++) {
             const type = types[t]
-            extensionContext.subscriptions.push(commands.registerCommand(this.generateProjectElement({ type: type }).id, async () => await this.generateGradleProject({ type: type }) ))
+            // extensionContext.subscriptions.push(commands.registerCommand(this.generateProjectElement({ type: type }).id, async () => await this.generateGradleProject({ type: type }) ))
             extensionContext.subscriptions.push(commands.registerCommand(this.generateGradleWrapperElement({ type: type }).id, async () => await this.prepareGradleW({ type: type }) ))
             extensionContext.subscriptions.push(commands.registerCommand(this.gradleWAssembleElement({ type: type }).id, async () => await this.gradleWAssemble({ type: type }) ))
             for (let c = 0; c < configurations.length; c++) {
@@ -104,12 +104,12 @@ export class AndroidStream extends Stream {
             icon: scheme ? scheme.buildConfiguration == SchemeBuildConfiguration.Debug ? 'target::charts.orange' : 'target::charts.green' : 'target'
         })
     }
-    generateProjectElement = (options: { type: GradleFolder }) => new Dependency({
-        id: options.type === GradleFolder.Library ? SideTreeItem.GradleLibGenerate : SideTreeItem.GradleAppGenerate,
-        label: (options.type === GradleFolder.Library ? this.isGeneratingLibProject : this.isGeneratingAppProject) ? 'Generating Project' : 'Generate Project',
-        version: '',
-        icon: (options.type === GradleFolder.Library ? this.isGeneratingLibProject : this.isGeneratingAppProject) ? 'sync~spin::charts.green' : sidebarTreeView?.fileIcon('hammer')
-    })
+    // generateProjectElement = (options: { type: GradleFolder }) => new Dependency({
+    //     id: options.type === GradleFolder.Library ? SideTreeItem.GradleLibGenerate : SideTreeItem.GradleAppGenerate,
+    //     label: (options.type === GradleFolder.Library ? this.isGeneratingLibProject : this.isGeneratingAppProject) ? 'Generating Project' : 'Generate Project',
+    //     version: '',
+    //     icon: (options.type === GradleFolder.Library ? this.isGeneratingLibProject : this.isGeneratingAppProject) ? 'sync~spin::charts.green' : sidebarTreeView?.fileIcon('hammer')
+    // })
     generateGradleWrapperElement = (options: { type: GradleFolder }) => new Dependency({
         id: options.type === GradleFolder.Library ? SideTreeItem.GradleLibGenerateGradleW : SideTreeItem.GradleAppGenerateGradleW,
         label: this.gradle(options.type).isGeneratingWrapper ? 'Making Gradle Wrapper' : 'Make Gradle Wrapper',
@@ -391,9 +391,10 @@ export class AndroidStream extends Stream {
     private async gradleItems(options: { type: GradleFolder }): Promise<Dependency[]> {
         const gradle = this.gradle(options.type)
         let items: Dependency[] = []
-        if (!gradle.isFolderExists()) {
-            items.push(this.generateProjectElement({ type: options.type }))
-        } else if (!gradle.wrapper.isExists()) {
+        // if (!gradle.isFolderExists()) {
+        //     items.push(this.generateProjectElement({ type: options.type }))
+        // } else 
+        if (!gradle.wrapper.isExists()) {
             items.push(this.generateGradleWrapperElement({ type: options.type }))
         } else {
             items.push(this.gradleWAssembleElement({ type: options.type }))
