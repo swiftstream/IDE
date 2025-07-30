@@ -4,7 +4,7 @@ import Handlebars from 'handlebars'
 import { copyFile, readFile } from './helpers/filesHelper'
 import { LogLevel, print } from './streams/stream'
 import { AndroidStream, DroidBuildArch, droidBuildArchToSwiftBuildFolder } from './streams/android/androidStream'
-import { AndroidStreamConfig, Scheme, SoMode } from './androidStreamConfig'
+import { AndroidStreamConfig, PackageMode, Scheme, SoMode } from './androidStreamConfig'
 import { getToolchainsList } from './toolchain'
 import { DevContainerConfig } from './devContainerConfig'
 
@@ -17,7 +17,8 @@ export class AndroidLibraryProject {
         compileSdk: number,
         minSdk: number,
         javaVersion: number,
-        swiftVersion: string
+        swiftVersion: string,
+        isApp: boolean
     }) {
         const libraryPath = path.join(options.projectPath, 'Library')
         const swiftSourcesPath = path.join(options.projectPath, 'Sources')
@@ -61,7 +62,8 @@ export class AndroidLibraryProject {
                 minSdk: options.minSdk,
                 targetName: target,
                 javaVersion: options.javaVersion,
-                swiftVersion: options.swiftVersion
+                swiftVersion: options.swiftVersion,
+                isApp: options.isApp
             }
             const buildGradlePath = path.join(targetPath, 'build.gradle.kts')
             if (!fs.existsSync(buildGradlePath)) {
@@ -86,14 +88,38 @@ export class AndroidLibraryProject {
             if (!fs.existsSync(sourcesPath)) {
                 fs.mkdirSync(sourcesPath, { recursive: true })
             }
-            fs.writeFileSync(
-                path.join(sourcesPath, 'SwiftInterface.kt'),
-                Handlebars.compile(readFile(path.join('assets', 'Sources', 'android', 'library', 'Sources', 'kotlin', 'Library.hbs')))({
-                    namespace: buildPayload.namespace,
-                    kotlinclassname: 'SwiftInterface',
-                    target: buildPayload.targetName
-                })
-            )
+            if (!options.isApp) {
+                fs.writeFileSync(
+                    path.join(sourcesPath, 'SwiftInterface.kt'),
+                    Handlebars.compile(readFile(path.join('assets', 'Sources', 'android', 'library', 'Sources', 'kotlin', 'Library.hbs')))({
+                        namespace: buildPayload.namespace,
+                        kotlinclassname: 'SwiftInterface',
+                        target: buildPayload.targetName
+                    })
+                )
+            }
+            const jniPathToClass = `${buildPayload.namespace}.SwiftInterface`.split('.').join('_')
+            const swiftTargetPath = path.join(swiftSourcesPath, buildPayload.targetName)
+            // Replacement logic
+            const placeholder = '@_cdecl("Java_path_to_class'
+            const replacementPrefix = `@_cdecl("Java_${jniPathToClass}`
+            try {
+                const swiftTargetFiles = fs.readdirSync(swiftTargetPath)
+                for (const swiftTargetFile of swiftTargetFiles) {
+                    const fullPath = path.join(swiftTargetPath, swiftTargetFile)
+                    if (fs.statSync(fullPath).isFile()) {
+                        let content = fs.readFileSync(fullPath, 'utf-8')
+                        if (content.includes(placeholder)) {
+                            let updatedContent = content.replaceAll(placeholder, replacementPrefix)
+                            updatedContent = updatedContent.replaceAll(' // the path will be set automatically on the first build', '')
+                            fs.writeFileSync(fullPath, updatedContent, 'utf-8')
+                            console.log(`Replaced 'Java_path_to_class' in ${fullPath}`)
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`Error looking for files in ${swiftTargetPath} to replace 'Java_path_to_class':`, error)
+            }
             const jniLibsPath = path.join(mainPath, 'jniLibs')
             if (!fs.existsSync(jniLibsPath)) {
                 fs.mkdirSync(jniLibsPath)
@@ -283,7 +309,7 @@ export class AndroidLibraryProject {
             .filter(entry => entry.isDirectory())
             .map(entry => entry.name)
         // Determine which folders should be removed
-        const foldersToRemove = subfolders.filter(folder => ![...options.targets.map(x => x.toLowerCase()), 'gradle', 'build', '.git'].includes(folder))
+        const foldersToRemove = subfolders.filter(folder => ![...options.targets.map(x => x.toLowerCase()), 'gradle', 'build', '.git', '.gradle'].includes(folder))
         if (foldersToRemove.length > 0) {
             print(`🧹 Removing obsolete submodules`)
             // Delete redundant folders
@@ -293,6 +319,95 @@ export class AndroidLibraryProject {
                 print(`    removed "${folder}"`, LogLevel.Detailed)
             }
         }
+    }
+
+    static async proceedManifest(stream: AndroidStream, options: {
+        projectPath: string,
+        streamConfig: AndroidStreamConfig,
+        manifest: string | undefined
+    }) {
+        if (options.streamConfig.config.packageMode != PackageMode.App) { return }
+        if (!options.manifest) { return }
+        const target = 'appui'
+        const libraryManifestPath = path.join(options.projectPath, 'Library', target, 'src', 'main', 'AndroidManifest.xml')
+        const newContent = options.manifest.replace('__TARGET_NAME__', options.streamConfig.config.name)
+        fs.writeFileSync(libraryManifestPath, newContent, 'utf8')
+    }
+
+    static async proceedActivityBodies(stream: AndroidStream, options: {
+        projectPath: string,
+        streamConfig: AndroidStreamConfig,
+        activityBodies: Record<string, string> | undefined
+    }) {
+        if (options.streamConfig.config.packageMode != PackageMode.App) { return }
+        if (!options.activityBodies) { return }
+        const libraryPath = path.join(options.projectPath, 'Library')
+        const target = 'appui'
+        const nameSpaceWithTarget = `${options.streamConfig.config.packageName}.${target.toLowerCase()}`
+        const targetPath = path.join(libraryPath, target)
+        if (!fs.existsSync(targetPath)) {
+            fs.mkdirSync(targetPath)
+        }
+        const activityNames = Object.keys(options.activityBodies)
+        const targetSrcPath = path.join(targetPath, 'src')
+        if (!fs.existsSync(targetSrcPath)) {
+            fs.mkdirSync(targetSrcPath)
+        }
+        const targetSrcMainPath = path.join(targetSrcPath, 'main')
+        if (!fs.existsSync(targetSrcMainPath)) {
+            fs.mkdirSync(targetSrcMainPath)
+        }
+        const targetSrcMainJavaPath = path.join(targetSrcMainPath, 'java')
+        if (!fs.existsSync(targetSrcMainJavaPath)) {
+            fs.mkdirSync(targetSrcMainJavaPath)
+        }
+        const javaFilesRootPath = AndroidLibraryProject.createFolderStructureIfNeeded(targetSrcMainJavaPath, nameSpaceWithTarget)
+        const existingFiles = fs.readdirSync(javaFilesRootPath)
+        for (const existingFile of existingFiles) {
+            if (existingFile.endsWith('Activity.kt')) {
+                const fullPath = path.join(javaFilesRootPath, existingFile)
+                if (fs.statSync(fullPath).isFile()) {
+                    fs.unlinkSync(fullPath)
+                }
+            }
+        }
+        for (let i = 0; i < activityNames.length; i++) {
+            const activityName = activityNames[i]
+            const encodedActivity = options.activityBodies[activityName]
+            const decodedActivity = atob(encodedActivity)
+            const newContent = `package ${nameSpaceWithTarget}\n\n${decodedActivity}`
+            const activityPath = path.join(javaFilesRootPath, `${activityName}.kt`)
+            fs.writeFileSync(activityPath, newContent, 'utf8')
+        }
+    }
+
+    static async proceedDependencies(stream: AndroidStream, options: {
+        projectPath: string,
+        streamConfig: AndroidStreamConfig,
+        dependencies: string[]
+    }) {
+        if (options.streamConfig.config.packageMode != PackageMode.App) { return }
+        const target = 'appui'
+        const begin = '// managed by swiftstreamide: dependencies-begin'
+        const end = '// managed by swiftstreamide: dependencies-end'
+        const buildGradlePath = path.join(options.projectPath, 'Library', target.toLowerCase(), 'build.gradle.kts')
+        const buildGradleFile = fs.readFileSync(buildGradlePath, 'utf8')
+        if (!buildGradleFile.includes(begin) || !buildGradleFile.includes(end)) {
+            print(`⚠️ Skipped setting dependencies since special tag is missing`, LogLevel.Detailed)
+            return
+        }
+        const before = buildGradleFile.split(begin)[0]
+        const after = buildGradleFile.split(end)[1]
+        let newContent = before
+        newContent += begin
+        if (options.streamConfig.config.soMode === SoMode.Packed) {
+            for (let d = 0; d < options.dependencies.length; d++) {
+                newContent += `\n    ${options.dependencies[d]}`
+            }
+        }
+        newContent += '\n    ' + end
+        newContent += after
+        fs.writeFileSync(buildGradlePath, newContent, 'utf8')
     }
 
     static async proceedSoDependencies(stream: AndroidStream, options: {
@@ -391,4 +506,16 @@ export class AndroidLibraryProject {
         'libFoundationXML.so',
         'libxml2.so'
     ]
+
+    static createFolderStructureIfNeeded(baseDir: string, dottedPath: string): string {
+        const parts = dottedPath.split('.')
+        let currentPath = baseDir
+        for (const part of parts) {
+            currentPath = path.join(currentPath, part)
+            if (!fs.existsSync(currentPath)) {
+                fs.mkdirSync(currentPath)
+            }
+        }
+        return path.join(baseDir, ...dottedPath.split('.'))
+    }
 }
