@@ -1,0 +1,36 @@
+import Droid
+
+final class MainActivity: AppCompatActivity {
+    override class var exported: Bool? { true }
+    override class var theme: String? { "@style/Theme.AppCompat.NoActionBar" }
+    override class var intentFilter: App.IntentFilter? { .mainLauncher }
+    override class var configChanges: [ConfigChangeType] { [.orientation, .screenSize, .screenLayout, .smallestScreenSize] }
+
+    @State var width = 200
+
+    override func buildUI() {
+        body {
+            HStack {
+                FrameLayout()
+                    .width(100)
+                    .height(100)
+                    .backgroundColor(.aqua)
+                HSpace(64)
+                FrameLayout()
+                    .width($width)
+                    .height(200)
+                    .backgroundColor(.indigo)
+                    .onClick {
+                        if self.width == 200 {
+                            Log.i("clicked, width to 100")
+                            self.width = 100
+                        } else {
+                            Log.i("clicked, width to 200")
+                            self.width = 200
+                        }
+                    }
+            }
+            .backgroundColor(.gold)
+        }
+    }
+}

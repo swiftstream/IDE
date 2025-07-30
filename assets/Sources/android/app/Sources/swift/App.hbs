@@ -1,0 +1,23 @@
+import Droid
+import Logging
+
+@main
+public final class App: DroidApp {
+	@AppBuilder public override var body: Content {
+        Lifecycle.didFinishLaunching{
+			App.setLogLevel(.debug)
+			Log.i("🚀 Lifecycle.didFinishLaunching")
+		}
+		Manifest
+			.application {
+				.allowBackup()
+				.label("{{name}}")
+				.activities(
+					{{#each activities as |activity|}}
+					{{{activity}}}Activity.self
+					{{/each}}
+				)
+			}
+    }
+}
+extension App: @unchecked Sendable {}
