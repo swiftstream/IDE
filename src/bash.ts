@@ -7,14 +7,35 @@ import { CancellableTaskRunner } from './embeddedBuildTaskRunner'
 
 export class Bash {
     whichCache: {} = {}
+
+    private async getShellEnv(): Promise<NodeJS.ProcessEnv> {
+        return new Promise((resolve, reject) => {
+            exec(`/bin/bash -l -c env`, (err, stdout) => {
+                if (err) {
+                    return reject(err)
+                }
+                const env: NodeJS.ProcessEnv = { ...process.env }
+                stdout.split('\n').forEach(line => {
+                    const i = line.indexOf('=')
+                    if (i > 0) {
+                        const key = line.slice(0, i)
+                        const value = line.slice(i + 1)
+                        env[key] = value
+                    }
+                })
+                resolve(env)
+            })
+        })
+    }
     
     async which(program: string): Promise<string | undefined> {
-        return new Promise<string | undefined>((resolve, reject) => {
+        return new Promise<string | undefined>(async (resolve, reject) => {
             const cachedPath = this.whichCache[program]
             if (cachedPath && cachedPath.length > 0) {
                 return resolve(cachedPath)
             }
-            exec(`/usr/bin/which ${program}`, (error, stdout, stderr) => {
+            const env = await this.getShellEnv()
+            exec(`/usr/bin/which ${program}`, { env }, (error, stdout, stderr) => {
                 if (error) {
                     console.error(`Error: ${error.message}`)
                     console.error(`Exit code: ${error.code}`)
