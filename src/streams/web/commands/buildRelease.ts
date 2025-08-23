@@ -219,6 +219,10 @@ export async function buildReleaseCommand(webStream: WebStream, mode: WebBuildMo
 			print(`🧯 ${text}: ${json === '{}' ? error : json}`)
 			console.error(error)
 		}
+		if (error.errno && error.errno == -13 && error.code === 'EACCES') {
+			print(`⚠️ EACCES issue means a mess with the file permissions caused by VSCode itself, please delete \`${buildProdFolder}\` and try again`)
+			print(`Track the issue here https://github.com/microsoft/vscode/issues/262960`)
+		}
 		status('error', `${text} (${measure.time}ms)`, StatusType.Error)
 	}
 }

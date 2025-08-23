@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import { projectDirectory, sidebarTreeView } from '../../../extension'
-import { appTargetName, currentDevPort, isHotBuildingCSS, isHotBuildingHTML, isHotBuildingJS, serviceWorkerTargetName, WebBuildMode, WebStream } from '../webStream'
+import { appTargetName, buildDevFolder, currentDevPort, isHotBuildingCSS, isHotBuildingHTML, isHotBuildingJS, serviceWorkerTargetName, WebBuildMode, WebStream } from '../webStream'
 import { buildStatus, print, status, StatusType, isBuildingDebug, isHotBuildingSwift, LogLevel } from '../../stream'
 import { window } from 'vscode'
 import { isString } from '../../../helpers/isString'
@@ -255,6 +255,10 @@ export async function buildCommand(webStream: WebStream, mode: WebBuildMode) {
 			wsSendBuildError(`${errorText}`)
 			console.error(error)
 		}
+		if (error.errno && error.errno == -13 && error.code === 'EACCES') {
+			print(`⚠️ EACCES issue means a mess with the file permissions caused by VSCode itself, please delete \`${buildDevFolder}\` and try again`)
+			print(`Track the issue here https://github.com/microsoft/vscode/issues/262960`)
+		}
 		status('error', `${text} (${measure.time}ms)`, StatusType.Error)
 	}
 }
@@ -469,7 +473,7 @@ export async function hotRebuildSwift(webStream: WebStream, params: HotRebuildSw
 			print(`👉 Passing to delayed Swift hot rebuild call`, LogLevel.Verbose)
 			hotRebuildSwift(webStream, awaitingParams)
 		}
-	} catch (error) {
+	} catch (error: any) {
 		awaitingHotRebuildSwift = []
 		webStream.setBuildingDebug(false)
 		webStream.setHotBuildingSwift(false)
@@ -484,6 +488,10 @@ export async function hotRebuildSwift(webStream: WebStream, params: HotRebuildSw
 			print(`🧯 ${text}: ${errorText}`)
 			wsSendBuildError(`${errorText}`)
 			console.error(error)
+		}
+		if (error.errno && error.errno == -13 && error.code === 'EACCES') {
+			print(`⚠️ EACCES issue means a mess with the file permissions caused by VSCode itself, please delete \`${buildDevFolder}\` and try again`)
+			print(`Track the issue here https://github.com/microsoft/vscode/issues/262960`)
 		}
 		status('error', `${text} (${measure.time}ms)`, StatusType.Error)
 	}

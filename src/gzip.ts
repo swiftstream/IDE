@@ -34,11 +34,24 @@ export class Gzip {
     }): Promise<BashResult | undefined> {
         const measure = new TimeMeasure()
         print(`🧳 Gzipping ${options.filename}`, LogLevel.Detailed)
-        const filePath = `${options.path}/${options.filename}`
-        const gzFilePath = `${options.path}/${options.filename}.gz`
-        const originalSize = fs.statSync(filePath).size
-        const result = await this.execute([options.level ? `-${options.level}` : '-2', '-f', '--keep', options.filename], options.path, options.abortHandler)
-        const newSize = fs.statSync(gzFilePath).size
+        const originalPath = `${options.path}/${options.filename}`
+        print(`🧳 Gzipping originalPath: ${originalPath}`, LogLevel.Unbearable)
+        const tmpPath = `/tmp/${options.filename}`
+        print(`🧳 Gzipping tmpPath: ${tmpPath}`, LogLevel.Unbearable)
+        fs.copyFileSync(originalPath, tmpPath)
+        print(`🧳 Gzipping copyFileSync: ${originalPath} -> ${tmpPath}`, LogLevel.Unbearable)
+        const gzTmpFilePath = `${tmpPath}.gz`
+        print(`🧳 Gzipping gzTmpFilePath: ${gzTmpFilePath}`, LogLevel.Unbearable)
+        const gzDestFilePath = `${originalPath}.gz`
+        print(`🧳 Gzipping gzDestFilePath: ${gzDestFilePath}`, LogLevel.Unbearable)
+        const originalSize = fs.statSync(originalPath).size
+        const result = await this.execute([options.level ? `-${options.level}` : '-2', '-f', '--keep', tmpPath], '/tmp', options.abortHandler)
+        fs.copyFileSync(gzTmpFilePath, gzDestFilePath)
+        print(`🧳 Gzipping copyFileSync: ${gzTmpFilePath} -> ${gzDestFilePath}`, LogLevel.Unbearable)
+        fs.rmSync(tmpPath)
+        fs.rmSync(gzTmpFilePath)
+        print(`🧳 Gzipping rmSync: ${gzTmpFilePath}`, LogLevel.Unbearable)
+        const newSize = fs.statSync(gzDestFilePath).size
         measure.finish()
         if (options.abortHandler.isCancelled) return undefined
         print(`🧳 Gzipped ${options.filename} ${humanFileSize(originalSize)} → ${humanFileSize(newSize)} in ${measure.time}ms`, LogLevel.Detailed)
