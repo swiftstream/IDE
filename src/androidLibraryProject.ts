@@ -88,7 +88,7 @@ export class AndroidLibraryProject {
             if (!fs.existsSync(sourcesPath)) {
                 fs.mkdirSync(sourcesPath, { recursive: true })
             }
-            if (!options.isApp) {
+            if (!options.isApp && !fs.existsSync(path.join(sourcesPath, 'SwiftInterface.kt'))) {
                 fs.writeFileSync(
                     path.join(sourcesPath, 'SwiftInterface.kt'),
                     Handlebars.compile(readFile(path.join('assets', 'Sources', 'android', 'library', 'Sources', 'kotlin', 'Library.hbs')))({
