@@ -54,7 +54,7 @@
 		{
 			"label": "Store Publish Build",
 			"command": "vsce",
-			"args": ["publish"], // "--pre-release"
+			"args": ["publish", "--allow-package-secrets", "privatekey"], // "--pre-release"
 			"type": "shell"
 		},
 		// MARK: Docker List
