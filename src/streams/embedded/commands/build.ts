@@ -15,9 +15,9 @@ export async function buildCommand(stream: EmbeddedStream, scheme: Scheme) {
     const measure = new TimeMeasure()
     const abortHandler = stream.setAbortBuildingDebugHandler(() => {
         measure.finish()
-        status('circle-slash', `Aborted Build after ${measure.time}ms`, StatusType.Default)
-        print(`🚫 Aborted Build after ${measure.time}ms`)
-        console.log(`Aborted Build after ${measure.time}ms`)
+        status('circle-slash', `Aborted Build after ${measure.fulltime}`, StatusType.Default)
+        print(`🚫 Aborted Build after ${measure.fulltime}`)
+        console.log(`Aborted Build after ${measure.fulltime}`)
         stream.setBuildingDebug(false)
         sidebarTreeView?.refresh()
     })
@@ -167,9 +167,9 @@ export async function buildCommand(stream: EmbeddedStream, scheme: Scheme) {
         }
         measure.finish()
         if (abortHandler.isCancelled) return
-        status('check', `Build Succeeded in ${measure.time}ms`, StatusType.Success)
-        print(`✅ Build Succeeded in ${measure.time}ms`)
-        console.log(`Build Succeeded in ${measure.time}ms`)
+        status('check', `Build Succeeded in ${measure.fulltime}`, StatusType.Success)
+        print(`✅ Build Succeeded in ${measure.fulltime}`)
+        console.log(`Build Succeeded in ${measure.fulltime}`)
         stream.setBuildingDebug(false)
         sidebarTreeView?.refresh()
         if (shouldRestartLSP) {
@@ -188,6 +188,6 @@ export async function buildCommand(stream: EmbeddedStream, scheme: Scheme) {
             print(`🧯 ${text}: ${errorText}`)
             console.error(error)
         }
-        status('error', `${text} (${measure.time}ms)`, StatusType.Error)
+        status('error', `${text} (${measure.fulltime})`, StatusType.Error)
     }
 }

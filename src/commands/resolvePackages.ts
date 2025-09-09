@@ -8,9 +8,9 @@ export async function resolvePackagesCommand() {
     const measure = new TimeMeasure()
     const abortHandler = currentStream?.setAbortBuildingDebugHandler(() => {
         measure.finish()
-        status('circle-slash', `Aborted Resolving Packages after ${measure.time}ms`, StatusType.Default)
-        print(`🚫 Aborted Resolving Packages after ${measure.time}ms`)
-        console.log(`Aborted Resolving Packages after ${measure.time}ms`)
+        status('circle-slash', `Aborted Resolving Packages after ${measure.fulltime}`, StatusType.Default)
+        print(`🚫 Aborted Resolving Packages after ${measure.fulltime}`)
+        console.log(`Aborted Resolving Packages after ${measure.fulltime}`)
         sidebarTreeView?.refresh()
     })
     if (!abortHandler) return
@@ -23,7 +23,7 @@ export async function resolvePackagesCommand() {
         },
         abortHandler: abortHandler
     })
-    status('check', `Resolved Packages in ${measure.time}ms`, StatusType.Success)
+    status('check', `Resolved Packages in ${measure.fulltime}`, StatusType.Success)
     await new Promise((x) => setTimeout(x, 1000))
     currentStream?.setResolvingPackages(false)
 }

@@ -131,9 +131,9 @@ export async function flashCommand(stream: EmbeddedStream, scheme: Scheme) {
             }) === false) { stream.setFlashing(false);return }
         }
         measure.finish()
-        status('check', `Flashed firmware in ${measure.time}ms`, StatusType.Success)
-        print(`✅ Flashed firmware in ${measure.time}ms`)
-        console.log(`Flashed firmware in ${measure.time}ms`)
+        status('check', `Flashed firmware in ${measure.fulltime}`, StatusType.Success)
+        print(`✅ Flashed firmware in ${measure.fulltime}`)
+        console.log(`Flashed firmware in ${measure.fulltime}`)
         stream.setFlashing(false)
         sidebarTreeView?.refresh()
     }

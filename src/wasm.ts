@@ -27,7 +27,7 @@ export class Wasm {
         if (options.abortHandler.isCancelled) return
         fs.writeFileSync(fullPath, bytes)
         measure.finish()
-        print(`🎞️ Lowered I64imports in ${options.lowercasedTarget}.wasm in ${measure.time}ms`, LogLevel.Detailed)
+        print(`🎞️ Lowered I64imports in ${options.lowercasedTarget}.wasm in ${measure.fulltime}`, LogLevel.Detailed)
     }
 
     /// Removes all custom sections, reduces file size by 1/3
@@ -54,7 +54,7 @@ export class Wasm {
         if (options.abortHandler.isCancelled) return undefined
         const newSize = fs.statSync(fullPath).size
         measure.finish()
-        print(`🔪 Stripped ${options.lowercasedTarget}.wasm ${humanFileSize(originalSize)} → ${humanFileSize(newSize)} in ${measure.time}ms`, LogLevel.Detailed)
+        print(`🔪 Stripped ${options.lowercasedTarget}.wasm ${humanFileSize(originalSize)} → ${humanFileSize(newSize)} in ${measure.fulltime}`, LogLevel.Detailed)
         return result
     }
 
@@ -83,7 +83,7 @@ export class Wasm {
         if (options.abortHandler.isCancelled) return undefined
         const newSize = fs.statSync(fullPath).size
         measure.finish()
-        print(`💾 Optimized ${options.lowercasedTarget}.wasm ${humanFileSize(originalSize)} → ${humanFileSize(newSize)} in ${measure.time}ms`, LogLevel.Detailed)
+        print(`💾 Optimized ${options.lowercasedTarget}.wasm ${humanFileSize(originalSize)} → ${humanFileSize(newSize)} in ${measure.fulltime}`, LogLevel.Detailed)
         return result
     }
 }

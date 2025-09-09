@@ -26,9 +26,9 @@ export async function buildReleaseCommand(webStream: WebStream, mode: WebBuildMo
 	if (isBuildingRelease) return
 	const abortHandler = webStream.setAbortBuildingReleaseHandler(() => {
 		measure.finish()
-        status('circle-slash', `Aborted Build after ${measure.time}ms`, StatusType.Default)
-        print(`🚫 Aborted Build after ${measure.time}ms`)
-        console.log(`Aborted Build after ${measure.time}ms`)
+        status('circle-slash', `Aborted Build after ${measure.fulltime}`, StatusType.Default)
+        print(`🚫 Aborted Build after ${measure.fulltime}`)
+        console.log(`Aborted Build after ${measure.fulltime}`)
         webStream.setBuildingRelease(false)
         sidebarTreeView?.refresh()
 	})
@@ -201,10 +201,10 @@ export async function buildReleaseCommand(webStream: WebStream, mode: WebBuildMo
 		}
 		measure.finish()
 		if (abortHandler.isCancelled) return
-		status('check', `Release Build Succeeded in ${measure.time}ms`, StatusType.Success)
-		print(`✅ Release Build Succeeded in ${measure.time}ms`)
+		status('check', `Release Build Succeeded in ${measure.fulltime}`, StatusType.Success)
+		print(`✅ Release Build Succeeded in ${measure.fulltime}`)
 		print(`🌐 Test in browser at https://localhost:${currentProdPort}`)
-		console.log(`Release Build Succeeded in ${measure.time}ms`)
+		console.log(`Release Build Succeeded in ${measure.fulltime}`)
 		webStream.setBuildingRelease(false)
 		sidebarTreeView?.refresh()
 		if (successCallback) successCallback()
@@ -223,6 +223,6 @@ export async function buildReleaseCommand(webStream: WebStream, mode: WebBuildMo
 			print(`⚠️ EACCES issue means a mess with the file permissions caused by VSCode itself, please delete \`${buildProdFolder}\` and try again`)
 			print(`Track the issue here https://github.com/microsoft/vscode/issues/262960`)
 		}
-		status('error', `${text} (${measure.time}ms)`, StatusType.Error)
+		status('error', `${text} (${measure.fulltime})`, StatusType.Error)
 	}
 }

@@ -31,9 +31,9 @@ export async function buildCommand(webStream: WebStream, mode: WebBuildMode) {
 	if (isBuildingDebug || webStream.isAnyHotBuilding()) { return }
 	const abortHandler = webStream.setAbortBuildingDebugHandler(() => {
 		measure.finish()
-        status('circle-slash', `Aborted Build after ${measure.time}ms`, StatusType.Default)
-        print(`🚫 Aborted Build after ${measure.time}ms`)
-        console.log(`Aborted Build after ${measure.time}ms`)
+        status('circle-slash', `Aborted Build after ${measure.fulltime}`, StatusType.Default)
+        print(`🚫 Aborted Build after ${measure.fulltime}`)
+        console.log(`Aborted Build after ${measure.fulltime}`)
         webStream.setBuildingDebug(false)
         sidebarTreeView?.refresh()
 	})
@@ -77,7 +77,7 @@ export async function buildCommand(webStream: WebStream, mode: WebBuildMode) {
 			const text = `Missing ${requiredDependencies.missing.map((x) => `\`${x}\``).join(', ')} package${requiredDependencies.missing.length > 1 ? 's' : ''}`
 			const error = `Debug Build Failed: ${text}`
 			wsSendBuildError(`${error}`)
-			status('error', `${text} (${measure.time}ms)`, StatusType.Error)
+			status('error', `${text} (${measure.fulltime})`, StatusType.Error)
 			print(`🙆‍♂️ ${text}`)
 			const result = await window.showErrorMessage(text, 'Retry', 'Cancel')
 			if (result == 'Retry') {
@@ -234,10 +234,10 @@ export async function buildCommand(webStream: WebStream, mode: WebBuildMode) {
 		if (abortHandler.isCancelled) return
 		measure.finish()
 		wsSendBuildProgress(100)
-		status('check', `Build Succeeded in ${measure.time}ms`, StatusType.Success)
-		print(`✅ Build Succeeded in ${measure.time}ms`)
+		status('check', `Build Succeeded in ${measure.fulltime}`, StatusType.Success)
+		print(`✅ Build Succeeded in ${measure.fulltime}`)
 		print(`🌐 Test in browser at https://localhost:${currentDevPort}`)
-		console.log(`Build Succeeded in ${measure.time}ms`)
+		console.log(`Build Succeeded in ${measure.fulltime}`)
 		webStream.setBuildingDebug(false)
 		sidebarTreeView?.refresh()
 		wsSendHotReload()
@@ -259,7 +259,7 @@ export async function buildCommand(webStream: WebStream, mode: WebBuildMode) {
 			print(`⚠️ EACCES issue means a mess with the file permissions caused by VSCode itself, please delete \`${buildDevFolder}\` and try again`)
 			print(`Track the issue here https://github.com/microsoft/vscode/issues/262960`)
 		}
-		status('error', `${text} (${measure.time}ms)`, StatusType.Error)
+		status('error', `${text} (${measure.fulltime})`, StatusType.Error)
 	}
 }
 
@@ -285,9 +285,9 @@ export async function hotRebuildSwift(webStream: WebStream, params: HotRebuildSw
 	const measure = new TimeMeasure()
 	const abortHandler = webStream.setAbortBuildingDebugHandler(() => {
 		measure.finish()
-		status('circle-slash', `Aborted Hot Rebuilt Swift after ${measure.time}ms`, StatusType.Success)
-		print(`🚫 Aborted Hot Rebuilt Swift after ${measure.time}ms`)
-		console.log(`Aborted Hot Rebuilt Swift after ${measure.time}ms`)
+		status('circle-slash', `Aborted Hot Rebuilt Swift after ${measure.fulltime}`, StatusType.Success)
+		print(`🚫 Aborted Hot Rebuilt Swift after ${measure.fulltime}`)
+		console.log(`Aborted Hot Rebuilt Swift after ${measure.fulltime}`)
 		webStream.setBuildingDebug(false)
 		webStream.setHotBuildingSwift(false)
 		webStream.setRecompilingApp(false)
@@ -459,9 +459,9 @@ export async function hotRebuildSwift(webStream: WebStream, params: HotRebuildSw
 		}
 		measure.finish()
 		if (abortHandler.isCancelled) return
-		status('flame', `Hot Rebuilt Swift in ${measure.time}ms`, StatusType.Success)
-		print(`🔥 Hot Rebuilt Swift in ${measure.time}ms`)
-		console.log(`Hot Rebuilt Swift in ${measure.time}ms`)
+		status('flame', `Hot Rebuilt Swift in ${measure.fulltime}`, StatusType.Success)
+		print(`🔥 Hot Rebuilt Swift in ${measure.fulltime}`)
+		console.log(`Hot Rebuilt Swift in ${measure.fulltime}`)
 		webStream.setBuildingDebug(false)
 		webStream.setHotBuildingSwift(false)
 		webStream.setRecompilingApp(false)
@@ -493,7 +493,7 @@ export async function hotRebuildSwift(webStream: WebStream, params: HotRebuildSw
 			print(`⚠️ EACCES issue means a mess with the file permissions caused by VSCode itself, please delete \`${buildDevFolder}\` and try again`)
 			print(`Track the issue here https://github.com/microsoft/vscode/issues/262960`)
 		}
-		status('error', `${text} (${measure.time}ms)`, StatusType.Error)
+		status('error', `${text} (${measure.fulltime})`, StatusType.Error)
 	}
 }
 
@@ -510,9 +510,9 @@ export async function hotRebuildCSS(webStream: WebStream) {
 	const measure = new TimeMeasure()
 	const abortHandler = webStream.setAbortBuildingDebugHandler(() => {
 		measure.finish()
-		status('circle-slash', `Aborted Hot Rebuilt CSS after ${measure.time}ms`, StatusType.Success)
-		print(`🚫 Aborted Hot Rebuilt CSS after ${measure.time}ms`)
-		console.log(`Aborted Hot Rebuilt CSS after ${measure.time}ms`)
+		status('circle-slash', `Aborted Hot Rebuilt CSS after ${measure.fulltime}`, StatusType.Success)
+		print(`🚫 Aborted Hot Rebuilt CSS after ${measure.fulltime}`)
+		console.log(`Aborted Hot Rebuilt CSS after ${measure.fulltime}`)
 		webStream.setBuildingDebug(false)
 		webStream.setHotBuildingCSS(false)
 		sidebarTreeView?.refresh()
@@ -529,9 +529,9 @@ export async function hotRebuildCSS(webStream: WebStream) {
 			abortHandler: abortHandler
 		})
 		measure.finish()
-		status('flame', `Hot Rebuilt CSS in ${measure.time}ms`, StatusType.Success)
-		print(`🔥 Hot Rebuilt CSS in ${measure.time}ms`)
-		console.log(`Hot Rebuilt CSS in ${measure.time}ms`)
+		status('flame', `Hot Rebuilt CSS in ${measure.fulltime}`, StatusType.Success)
+		print(`🔥 Hot Rebuilt CSS in ${measure.fulltime}`)
+		console.log(`Hot Rebuilt CSS in ${measure.fulltime}`)
 		webStream.setBuildingDebug(false)
 		webStream.setHotBuildingCSS(false)
 		sidebarTreeView?.refresh()
@@ -557,7 +557,7 @@ export async function hotRebuildCSS(webStream: WebStream) {
 			wsSendBuildError(`${errorText}`)
 			console.error(error)
 		}
-		status('error', `${text} (${measure.time}ms)`, StatusType.Error)
+		status('error', `${text} (${measure.fulltime})`, StatusType.Error)
 	}
 }
 
@@ -580,9 +580,9 @@ export async function hotRebuildJS(webStream: WebStream, params?: HotRebuildJSPa
 	const measure = new TimeMeasure()
 	const abortHandler = webStream.setAbortBuildingDebugHandler(() => {
 		measure.finish()
-		status('circle-slash', `Aborted Hot Rebuilt JS after ${measure.time}ms`, StatusType.Success)
-		print(`🚫 Aborted Hot Rebuilt JS after ${measure.time}ms`)
-		console.log(`Aborted Hot Rebuilt JS after ${measure.time}ms`)
+		status('circle-slash', `Aborted Hot Rebuilt JS after ${measure.fulltime}`, StatusType.Success)
+		print(`🚫 Aborted Hot Rebuilt JS after ${measure.fulltime}`)
+		console.log(`Aborted Hot Rebuilt JS after ${measure.fulltime}`)
 		webStream.setBuildingDebug(false)
 		webStream.setHotBuildingJS(false)
 		sidebarTreeView?.refresh()
@@ -594,9 +594,9 @@ export async function hotRebuildJS(webStream: WebStream, params?: HotRebuildJSPa
 	function finishHotRebuild() {
 		if (abortHandler.isCancelled) return
 		measure.finish()
-		status('flame', `Hot Rebuilt JS in ${measure.time}ms`, StatusType.Success)
-		print(`🔥 Hot Rebuilt JS in ${measure.time}ms`)
-		console.log(`Hot Rebuilt JS in ${measure.time}ms`)
+		status('flame', `Hot Rebuilt JS in ${measure.fulltime}`, StatusType.Success)
+		print(`🔥 Hot Rebuilt JS in ${measure.fulltime}`)
+		console.log(`Hot Rebuilt JS in ${measure.fulltime}`)
 		webStream.setBuildingDebug(false)
 		webStream.setHotBuildingJS(false)
 		sidebarTreeView?.refresh()
@@ -655,7 +655,7 @@ export async function hotRebuildJS(webStream: WebStream, params?: HotRebuildJSPa
 			wsSendBuildError(`${errorText}`)
 			console.error(error)
 		}
-		status('error', `${text} (${measure.time}ms)`, StatusType.Error)
+		status('error', `${text} (${measure.fulltime})`, StatusType.Error)
 	}
 }
 
@@ -672,9 +672,9 @@ export async function hotRebuildHTML(webStream: WebStream) {
 	const measure = new TimeMeasure()
 	const abortHandler = webStream.setAbortBuildingDebugHandler(() => {
 		measure.finish()
-		status('circle-slash', `Aborted Hot Rebuilt HTML after ${measure.time}ms`, StatusType.Success)
-		print(`🚫 Aborted Hot Rebuilt HTML after ${measure.time}ms`)
-		console.log(`Aborted Hot Rebuilt HTML after ${measure.time}ms`)
+		status('circle-slash', `Aborted Hot Rebuilt HTML after ${measure.fulltime}`, StatusType.Success)
+		print(`🚫 Aborted Hot Rebuilt HTML after ${measure.fulltime}`)
+		console.log(`Aborted Hot Rebuilt HTML after ${measure.fulltime}`)
 		webStream.setBuildingDebug(false)
 		webStream.setHotBuildingHTML(false)
 		sidebarTreeView?.refresh()
@@ -723,9 +723,9 @@ export async function hotRebuildHTML(webStream: WebStream) {
 		})
 		measure.finish()
 		if (abortHandler.isCancelled) return
-		status('flame', `Hot Rebuilt HTML in ${measure.time}ms`, StatusType.Success)
-		print(`🔥 Hot Rebuilt HTML in ${measure.time}ms`)
-		console.log(`Hot Rebuilt HTML in ${measure.time}ms`)
+		status('flame', `Hot Rebuilt HTML in ${measure.fulltime}`, StatusType.Success)
+		print(`🔥 Hot Rebuilt HTML in ${measure.fulltime}`)
+		console.log(`Hot Rebuilt HTML in ${measure.fulltime}`)
 		webStream.setBuildingDebug(false)
 		webStream.setHotBuildingHTML(false)
 		sidebarTreeView?.refresh()
@@ -751,7 +751,7 @@ export async function hotRebuildHTML(webStream: WebStream) {
 			wsSendBuildError(`${errorText}`)
 			console.error(error)
 		}
-		status('error', `${text} (${measure.time}ms)`, StatusType.Error)
+		status('error', `${text} (${measure.fulltime})`, StatusType.Error)
 	}
 }
 
@@ -759,9 +759,9 @@ export function copyDebugBundledResources(webStream: WebStream) {
 	const measure = new TimeMeasure()
 	const abortHandler = webStream.setAbortBuildingDebugHandler(() => {
 		measure.finish()
-        status('circle-slash', `Aborted Copy Bundled Resources after ${measure.time}ms`, StatusType.Default)
-        print(`🚫 Aborted Copy Bundled Resources after ${measure.time}ms`)
-        console.log(`Aborted Copy Bundled Resources after ${measure.time}ms`)
+        status('circle-slash', `Aborted Copy Bundled Resources after ${measure.fulltime}`, StatusType.Default)
+        print(`🚫 Aborted Copy Bundled Resources after ${measure.fulltime}`)
+        console.log(`Aborted Copy Bundled Resources after ${measure.fulltime}`)
         webStream.setBuildingDebug(false)
         sidebarTreeView?.refresh()
 	})

@@ -71,5 +71,5 @@ export function proceedBundledResources(options: {
     }
     if (options.abortHandler.isCancelled) return
     measure.finish()
-    print(`📄 Processed bundle resources in ${measure.time}ms`, LogLevel.Detailed)
+    print(`📄 Processed bundle resources in ${measure.fulltime}`, LogLevel.Detailed)
 }

@@ -36,7 +36,7 @@ export async function proceedServiceWorkerManifest(options: {
         fs.mkdirSync(outputDir, { recursive: true })
     fs.writeFileSync(pathToSaveManifest, JSON.stringify(generatedManifest, null, '\t'))
     timeMeasure.finish()
-    print(`📜 Got manifest in ${timeMeasure.time}ms`, LogLevel.Detailed)
+    print(`📜 Got manifest in ${timeMeasure.fulltime}`, LogLevel.Detailed)
     return generatedManifest
 }
 function getStaticManifest(fileName: string): any | undefined {

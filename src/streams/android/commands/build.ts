@@ -21,9 +21,9 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
     const measure = new TimeMeasure()
     const abortHandler = stream.setAbortBuildingDebugHandler(() => {
         measure.finish()
-        status('circle-slash', `Aborted Build after ${measure.time}ms`, StatusType.Default)
-        print(`🚫 Aborted Build after ${measure.time}ms`)
-        console.log(`Aborted Build after ${measure.time}ms`)
+        status('circle-slash', `Aborted Build after ${measure.fulltime}`, StatusType.Default)
+        print(`🚫 Aborted Build after ${measure.fulltime}`)
+        console.log(`Aborted Build after ${measure.fulltime}`)
         stream.setBuildingDebug(false)
         sidebarTreeView?.refresh()
     })
@@ -78,7 +78,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
             await stream.swift.androidBuildMetadata({ release: release })
             metadataMeasure.finish()
             if (abortHandler.isCancelled) return
-            print(`🧱 Built metadata swift target in ${metadataMeasure.time}ms`, LogLevel.Detailed)
+            print(`🧱 Built metadata swift target in ${metadataMeasure.fulltime}`, LogLevel.Detailed)
             clearStatus()
         }
         // Phase 4: Build executable targets
@@ -207,7 +207,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
             })
             gradlewMeasure.finish()
             if (abortHandler.isCancelled) return
-            print(`🧱 Prepared gradle wrapper in ${gradlewMeasure.time}ms`, LogLevel.Detailed)
+            print(`🧱 Prepared gradle wrapper in ${gradlewMeasure.fulltime}`, LogLevel.Detailed)
         } else if (streamConfig.config.packageMode == PackageMode.Library && !stream.gradle(GradleFolder.Library).wrapper.isExists()) {
             print(`🧱 Preparing gradle wrapper`, LogLevel.Detailed)
             buildStatus(`preparing gradle wrapper`)
@@ -219,13 +219,13 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
             })
             gradlewMeasure.finish()
             if (abortHandler.isCancelled) return
-            print(`🧱 Prepared gradle wrapper in ${gradlewMeasure.time}ms`, LogLevel.Detailed)
+            print(`🧱 Prepared gradle wrapper in ${gradlewMeasure.fulltime}`, LogLevel.Detailed)
         }
         measure.finish()
         if (abortHandler.isCancelled) return
-        status('check', `Build Succeeded in ${measure.time}ms`, StatusType.Success)
-        print(`✅ Build Succeeded in ${measure.time}ms`)
-        console.log(`Build Succeeded in ${measure.time}ms`)
+        status('check', `Build Succeeded in ${measure.fulltime}`, StatusType.Success)
+        print(`✅ Build Succeeded in ${measure.fulltime}`)
+        console.log(`Build Succeeded in ${measure.fulltime}`)
         stream.setBuildingDebug(false)
         sidebarTreeView?.refresh()
         if (shouldRestartLSP) {
@@ -244,7 +244,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
             print(`🧯 ${text}: ${errorText}`)
             console.error(error)
         }
-        status('error', `${text} (${measure.time}ms)`, StatusType.Error)
+        status('error', `${text} (${measure.fulltime})`, StatusType.Error)
     }
 }
 
@@ -269,9 +269,9 @@ export async function hotRebuildSwift(stream: AndroidStream, params: HotRebuildS
     const measure = new TimeMeasure()
     const abortHandler = stream.setAbortBuildingDebugHandler(() => {
         measure.finish()
-        status('circle-slash', `Aborted Hot Rebuilt Swift after ${measure.time}ms`, StatusType.Success)
-        print(`🚫 Aborted Hot Rebuilt Swift after ${measure.time}ms`)
-        console.log(`Aborted Hot Rebuilt Swift after ${measure.time}ms`)
+        status('circle-slash', `Aborted Hot Rebuilt Swift after ${measure.fulltime}`, StatusType.Success)
+        print(`🚫 Aborted Hot Rebuilt Swift after ${measure.fulltime}`)
+        console.log(`Aborted Hot Rebuilt Swift after ${measure.fulltime}`)
         stream.setBuildingDebug(false)
         stream.setHotBuildingSwift(false)
         sidebarTreeView?.refresh()
@@ -285,9 +285,9 @@ export async function hotRebuildSwift(stream: AndroidStream, params: HotRebuildS
         
         measure.finish()
         if (abortHandler.isCancelled) return
-        status('flame', `Hot Rebuilt Swift in ${measure.time}ms`, StatusType.Success)
-        print(`🔥 Hot Rebuilt Swift in ${measure.time}ms`)
-        console.log(`Hot Rebuilt Swift in ${measure.time}ms`)
+        status('flame', `Hot Rebuilt Swift in ${measure.fulltime}`, StatusType.Success)
+        print(`🔥 Hot Rebuilt Swift in ${measure.fulltime}`)
+        console.log(`Hot Rebuilt Swift in ${measure.fulltime}`)
         stream.setBuildingDebug(false)
         stream.setHotBuildingSwift(false)
         sidebarTreeView?.refresh()
@@ -310,6 +310,6 @@ export async function hotRebuildSwift(stream: AndroidStream, params: HotRebuildS
             print(`🧯 ${text}: ${errorText}`)
             console.error(error)
         }
-        status('error', `${text} (${measure.time}ms)`, StatusType.Error)
+        status('error', `${text} (${measure.fulltime})`, StatusType.Error)
     }
 }

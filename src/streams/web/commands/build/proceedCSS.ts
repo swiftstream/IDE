@@ -27,7 +27,7 @@ export async function proceedCSS(options: {
     }
     if (scssInBuildFolder.length == 0 && scssInSourcesFolder.length == 0) {
         measure.finish()
-        print(`💨 Skipping CSS files, nothing found in ${measure.time}ms`, LogLevel.Detailed)
+        print(`💨 Skipping CSS files, nothing found in ${measure.fulltime}`, LogLevel.Detailed)
         return
     }
     print(`🎨 Processing CSS files`, LogLevel.Detailed)
@@ -54,5 +54,5 @@ export async function proceedCSS(options: {
     if (options.abortHandler.isCancelled) return
     saveLastModifiedDateForKey(LastModifiedDateType.SCSS)
     measure.finish()
-    print(`🎨 Processed CSS in ${measure.time}ms`, LogLevel.Detailed)
+    print(`🎨 Processed CSS in ${measure.fulltime}`, LogLevel.Detailed)
 }

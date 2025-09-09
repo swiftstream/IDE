@@ -200,7 +200,7 @@ export class BashError {
                 description += ','
             description += ` exit code ${this.code}`
         }
-		if (this.executionTime) description += ` (executed in ${this.executionTime}ms)`
+		if (this.executionTime) description += ` (executed in ${this.executionfulltime})`
         if (this.error) description += `\n${this.error}`
 		if (this.stderr) description += `\n${this.stderr}`
 		if (this.stdout) description += `\n${this.stdout}`

@@ -41,7 +41,7 @@ export class Brotli {
         const newSize = fs.statSync(brFilePath).size
         measure.finish()
         if (options.abortHandler.isCancelled) return undefined
-        print(`🧳 Brotled ${options.filename} ${humanFileSize(originalSize)} → ${humanFileSize(newSize)} in ${measure.time}ms`, LogLevel.Detailed)
+        print(`🧳 Brotled ${options.filename} ${humanFileSize(originalSize)} → ${humanFileSize(newSize)} in ${measure.fulltime}`, LogLevel.Detailed)
         return result
     }
 }

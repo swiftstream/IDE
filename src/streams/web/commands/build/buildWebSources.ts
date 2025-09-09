@@ -73,7 +73,7 @@ async function buildWebSources(options: {
         throw `${options.target} web target build failed`
     if (options.abortHandler.isCancelled) return
     measure.finish()
-    print(`🌳 Built \`${options.target}\` web target in ${measure.time}ms`, LogLevel.Detailed)
+    print(`🌳 Built \`${options.target}\` web target in ${measure.fulltime}`, LogLevel.Detailed)
 }
 function doesDependenciesPresent(): boolean {
 	const value = fs.existsSync(`${projectDirectory}/${webSourcesFolder}/node_modules`)

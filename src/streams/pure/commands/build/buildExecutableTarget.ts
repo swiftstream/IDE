@@ -48,8 +48,8 @@ export async function buildExecutableTarget(options: {
         measure.finish()
         if (options.abortHandler.isCancelled) return
         print({
-            detailed: `🧱 Built \`${options.target}\` swift target ${options.type ? `for \`.${options.type}\` ` : ''}in ${measure.time}ms`,
-            verbose: `🧱 Built swift target ${options.type ? `for \`.${options.type}\` ` : ''}in ${options.release ? 'release' : 'debug'} mode in ${measure.time}ms`
+            detailed: `🧱 Built \`${options.target}\` swift target ${options.type ? `for \`.${options.type}\` ` : ''}in ${measure.fulltime}`,
+            verbose: `🧱 Built swift target ${options.type ? `for \`.${options.type}\` ` : ''}in ${options.release ? 'release' : 'debug'} mode in ${measure.fulltime}`
         })
     } catch (error) {
         clearStatus()

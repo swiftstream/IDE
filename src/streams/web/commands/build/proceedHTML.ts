@@ -319,7 +319,7 @@ export async function proceedHTML(options: {
     }
     if (htmlInSourcesFolder.length == 0) {
         measure.finish()
-        print(`💨 Skipping HTML files, nothing found in ${measure.time}ms`, LogLevel.Detailed)
+        print(`💨 Skipping HTML files, nothing found in ${measure.fulltime}`, LogLevel.Detailed)
         return
     }
     print(`🌎 Processing HTML files`, LogLevel.Detailed)
@@ -378,7 +378,7 @@ export async function proceedHTML(options: {
     if (options.abortHandler.isCancelled) return
     saveLastModifiedDateForKey(LastModifiedDateType.HTML)
     measure.finish()
-    print(`🌎 Copied HTML files in ${measure.time}ms`, LogLevel.Detailed)
+    print(`🌎 Copied HTML files in ${measure.fulltime}`, LogLevel.Detailed)
 }
 function doctype() {
     return '<!DOCTYPE html>'

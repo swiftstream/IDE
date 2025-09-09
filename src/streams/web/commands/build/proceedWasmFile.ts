@@ -78,5 +78,5 @@ export async function proceedWasmFile(options: {
         }
     }
     if (options.abortHandler.isCancelled) return
-    print(`🧮 Processed wasm file in ${timeMeasure.time}ms`, LogLevel.Detailed)
+    print(`🧮 Processed wasm file in ${timeMeasure.fulltime}`, LogLevel.Detailed)
 }

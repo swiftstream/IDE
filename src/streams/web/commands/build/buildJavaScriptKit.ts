@@ -82,7 +82,7 @@ export async function buildJavaScriptKit(options: {
     if (options.abortHandler.isCancelled) return
     saveLastModifiedDateForKey(LastModifiedDateType.JavaScriptKitPackage)
     measure.finish()
-    print(`🫖 Built JavaScriptKit in ${measure.time}ms`, LogLevel.Detailed)
+    print(`🫖 Built JavaScriptKit in ${measure.fulltime}`, LogLevel.Detailed)
 }
 function doesJavaScriptKitCompiled(jsKitPath: string): boolean {
 	const value = fs.existsSync(`${jsKitPath}/Runtime/lib/index.d.ts`)

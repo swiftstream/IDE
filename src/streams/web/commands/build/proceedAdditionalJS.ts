@@ -58,7 +58,7 @@ export async function proceedAdditionalJS(options: {
     const files = listOfAdditionalJSFiles({ release: options.release, executableTargets: options.executableTargets })
     if (files.length == 0) {
         measure.finish()
-        print(`💨 Skipping processing additional JS files, nothing found in ${measure.time}ms`, LogLevel.Detailed)
+        print(`💨 Skipping processing additional JS files, nothing found in ${measure.fulltime}`, LogLevel.Detailed)
         return
     }
     print(`🫖 Processing additional JS files`, LogLevel.Detailed)
@@ -68,7 +68,7 @@ export async function proceedAdditionalJS(options: {
     }
     measure.finish()
     if (options.abortHandler.isCancelled) return
-    print(`🎨 Processed additional JS files in ${measure.time}ms`, LogLevel.Detailed)
+    print(`🎨 Processed additional JS files in ${measure.fulltime}`, LogLevel.Detailed)
 }
 
 export function listOfAdditionalJSFiles(options: { release: boolean, executableTargets: string[] }): string[] {

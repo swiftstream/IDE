@@ -37,7 +37,7 @@ export async function resolveSwiftDependencies(options: {
         await packageResolve()
         saveLastModifiedDateForKey(LastModifiedDateType.SwiftPackage, options.type)
         measure.finish()
-        print(`🔦 Resolved in ${measure.time}ms`, LogLevel.Detailed)
+        print(`🔦 Resolved in ${measure.fulltime}`, LogLevel.Detailed)
     }
     // if force == true and Package.swift was modified
     else if (options.force && wasFileModified({
@@ -50,7 +50,7 @@ export async function resolveSwiftDependencies(options: {
         })
         await packageResolve()
         saveLastModifiedDateForKey(LastModifiedDateType.SwiftPackage, options.type)
-        print(`🔦 Updated in ${measure.time}ms`, LogLevel.Detailed)
+        print(`🔦 Updated in ${measure.fulltime}`, LogLevel.Detailed)
     }
 }
 function doesBuildFolderExists(type: SwiftBuildType): boolean {

@@ -84,8 +84,8 @@ export async function clearCachesCommand() {
 	}
 	currentStream?.setClearingCache(false)
 	currentStream?.setClearedCache()
-	status('check', `Cleared Cache in ${measure.time}ms`, StatusType.Success)
-	print(`🧹 Cleared Cache in ${measure.time}ms`, LogLevel.Detailed)
+	status('check', `Cleared Cache in ${measure.fulltime}`, StatusType.Success)
+	print(`🧹 Cleared Cache in ${measure.fulltime}`, LogLevel.Detailed)
 	await new Promise((x) => setTimeout(x, 1000))
 	currentStream?.setClearedCache(false)
 }

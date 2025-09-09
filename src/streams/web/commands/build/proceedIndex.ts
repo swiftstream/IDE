@@ -23,6 +23,6 @@ export async function proceedIndex(options: {
         print(`Index code present`, LogLevel.Verbose)
     else
         print(`No index, skipping`, LogLevel.Verbose)
-    print(`🌎 Got index in ${timeMeasure.time}ms`, LogLevel.Detailed)
+    print(`🌎 Got index in ${timeMeasure.fulltime}`, LogLevel.Detailed)
     return index
 }

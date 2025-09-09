@@ -54,7 +54,7 @@ export class Gzip {
         const newSize = fs.statSync(gzDestFilePath).size
         measure.finish()
         if (options.abortHandler.isCancelled) return undefined
-        print(`🧳 Gzipped ${options.filename} ${humanFileSize(originalSize)} → ${humanFileSize(newSize)} in ${measure.time}ms`, LogLevel.Detailed)
+        print(`🧳 Gzipped ${options.filename} ${humanFileSize(originalSize)} → ${humanFileSize(newSize)} in ${measure.fulltime}`, LogLevel.Detailed)
         return result
     }
 }

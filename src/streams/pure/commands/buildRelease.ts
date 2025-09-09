@@ -11,9 +11,9 @@ export async function buildRelease(stream: PureStream, buildMode: PureBuildMode,
     const measure = new TimeMeasure()
     const abortHandler = stream.setAbortBuildingReleaseHandler(() => {
         measure.finish()
-        status('circle-slash', `Aborted Release Build after ${measure.time}ms`, StatusType.Default)
-        print(`🚫 Aborted Release Build after ${measure.time}ms`)
-        console.log(`Aborted Release Build after ${measure.time}ms`)
+        status('circle-slash', `Aborted Release Build after ${measure.fulltime}`, StatusType.Default)
+        print(`🚫 Aborted Release Build after ${measure.fulltime}`)
+        console.log(`Aborted Release Build after ${measure.fulltime}`)
         stream.setBuildingRelease(false)
         sidebarTreeView?.refresh()
     })
@@ -51,9 +51,9 @@ export async function buildRelease(stream: PureStream, buildMode: PureBuildMode,
         })
         measure.finish()
         if (abortHandler.isCancelled) return
-        status('check', `Release Build Succeeded in ${measure.time}ms`, StatusType.Success)
-        print(`✅ Release Build Succeeded in ${measure.time}ms`)
-        console.log(`Release Build Succeeded in ${measure.time}ms`)
+        status('check', `Release Build Succeeded in ${measure.fulltime}`, StatusType.Success)
+        print(`✅ Release Build Succeeded in ${measure.fulltime}`)
+        console.log(`Release Build Succeeded in ${measure.fulltime}`)
         stream.setBuildingRelease(false)
         sidebarTreeView?.refresh()
         if (successCallback) successCallback()
@@ -69,6 +69,6 @@ export async function buildRelease(stream: PureStream, buildMode: PureBuildMode,
             print(`🧯 ${text}: ${errorText}`)
             console.error(error)
         }
-        status('error', `${text} (${measure.time}ms)`, StatusType.Error)
+        status('error', `${text} (${measure.fulltime})`, StatusType.Error)
     }
 }
