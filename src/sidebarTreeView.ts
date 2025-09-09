@@ -399,7 +399,7 @@ export class SidebarTreeView implements TreeDataProvider<Dependency> {
 					}))
 				}
 				// Options
-				if (extensionStream !== ExtensionStream.Embedded) {
+				if (extensionStream !== ExtensionStream.Embedded && extensionStream !== ExtensionStream.Android) {
 					items.push(new Dependency({
 						id: SideTreeItem.HotRebuild,
 						label: 'Hot rebuild',
