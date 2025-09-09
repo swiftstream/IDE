@@ -1,11 +1,18 @@
 package {{namespace}}
 
-import android.util.Log
+import java.util.Date
 
 object {{kotlinclassname}} {
     init {
         System.loadLibrary("{{target}}")
     }
 
-    external fun initialize(caller: Any)
+    external fun {{methodname}}(caller: Any)
+
+    external fun sendInt(number: Int)
+    external fun sendIntArray(array: IntArray)
+    external fun sendString(string: String)
+    external fun sendDate(date: Date)
+    external fun ping(): String
+    external fun fetchAsyncData(): String
 }

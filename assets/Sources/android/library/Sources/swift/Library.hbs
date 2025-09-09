@@ -1,26 +1,328 @@
+// Your journey into Swift for Android starts here!
+//
+// This file contains examples of how to interact with Java/Kotlin code
+// using JNI Kit and Android NDK Swift bindings.
+//
+// It also demonstrates how to wrap Java objects into Swift classes
+// for easier and more idiomatic usage in Swift.
+
+// JNI Kit with a lot of conveniences
 import JNIKit
 #if os(Android)
+// Official Swift bindings for Android NDK
 import Android
+// Specific logging handler for Android platform
 import AndroidLogging
 #endif
+// Lightweight and fast logging system
 import Logging
+// It is necessary for `Task`
+// otherwise you need `FoundationEssentials` package for `Date`
+import Foundation
+
+// MARK: - JNI Initialization
 
 #if os(Android)
+/// This method should be called first from Java/Kotlin side to initialize everything
+///
+/// Parameters:
+///   - envPointer: it's a pointer to the JNI environment, which is used to interact with the JVM.
+///   - clazzRef: it's a reference to the Java class that contains the native method being called.
+///   - callerRef: it's a reference to the Java object that called this native method
+/// Returns: Void
+///
+/// Note:
+/// 
+/// The naming convention for the function is important.
+/// It follows the JNI naming pattern: `Java_<package>_<class>_<method>`
+/// where `<package>` is the fully qualified package name with underscores instead of dots,
+/// `<class>` is the class name, and `<method>` is the method name.
+/// 
+/// For a Kotlin `object` (a singleton), methods are compiled as `static`.
+/// Therefore, `clazzRef` is a jclass reference to the 'SwiftInterface' class.
+/// If this were an instance method (e.g., inside a regular `class`), this second
+/// parameter would be a jobject (typically named `thizRef`) representing the instance.
 @_cdecl("Java_{{namespace}}_{{kotlinclassname}}_{{methodname}}")
-public func {{methodname}}(envPointer: UnsafeMutablePointer<JNIEnv?>, appObject: jobject, callerObject: jobject) {
+public func {{methodname}}(envPointer: UnsafeMutablePointer<JNIEnv?>, clazzRef: jobject, callerRef: jobject) {
+    // Activate logger
     LoggingSystem.bootstrap(AndroidLogHandler.taggedBySource)
     let logger = Logger(label: "🐦‍🔥 SWIFT")
     logger.info("🚀 Hello World!")
+    // Initialize JVM
     let jvm = envPointer.jvm()
     JNIKit.shared.initialize(with: jvm)
+    // Access current environment
     let localEnv = JEnv(envPointer)
-    let callerObj = callerObject.box(localEnv)
+    // Convert caller's local ref into global ref
+    let callerBox = callerRef.box(localEnv)
+    // Defer block to clean up local references
+    defer {
+        // Release local ref to caller object
+        localEnv.deleteLocalRef(callerRef)
+    }
+    // Initialize `JObject` from boxed global reference to the caller object
+    guard let callerObject = callerBox?.object() else { return }
+    
+    // Cache the class loader from the caller object
+    // it is important to load non-system classes later
+    // e.g. your own Java/Kotlin classes
+    if let classLoader = callerObject.getClassLoader(localEnv) {
+        JNICache.shared.setClassLoader(classLoader)
+        logger.info("🚀 class loader cached successfully")
+    }
+    
+    // Example of calling standard Java `toString` method
+    let callerDescription = callerObject.toString()
+    logger.info("🚀 caller description: \(callerDescription)")
+    
+    // Example of switching to another thread
     Task {
-        guard let env = JNIKit.shared.vm.attachCurrentThread() else { return }
+        // Access current environment in this thread
+        guard let env = JEnv.current() else { return }
         logger.info("🚀 new env: \(env)")
+        // Print JNI version into LogCat
         logger.info("🚀 jni version: \(env.getVersionString())")
-        let callerDescription = callerObj?.object()?.toString()
-        logger.info("🚀 caller description: \(callerDescription ?? "n/a")")
     }
 }
 #endif
+
+// MARK: - JNI Method Examples
+
+// Call the following methods after the `initialize` method above has been called
+
+#if os(Android)
+/// Example of receiving an integer from Java/Kotlin
+@_cdecl("Java_{{namespace}}_{{kotlinclassname}}_sendInt")
+public func sendInt(envPointer: UnsafeMutablePointer<JNIEnv?>, clazzRef: jobject, number: jint) {
+    let logger = Logger(label: "🐦‍🔥 SWIFT")
+    logger.info("🔢 sendInt: \(number)")
+}
+
+/// Example of receiving an integer array from Java/Kotlin
+@_cdecl("Java_{{namespace}}_{{kotlinclassname}}_sendIntArray")
+public func sendIntArray(envPointer: UnsafeMutablePointer<JNIEnv?>, clazzRef: jobject, arrayRef: jintArray) {
+    // Create lightweight logger object
+    let logger = Logger(label: "🐦‍🔥 SWIFT")
+    // Access current environment
+    let localEnv = JEnv(envPointer)
+    // Defer block to clean up local references
+    defer {
+        // Release local ref to array object
+        localEnv.deleteLocalRef(arrayRef)
+    }
+    // Get array length
+    logger.info("🔢 sendIntArray 1")
+    let length = localEnv.getArrayLength(arrayRef)
+    logger.info("🔢 sendIntArray 2 length: \(length)")
+    // Get array elements
+    var swiftArray = [Int32](repeating: 0, count: Int(length))
+    localEnv.getIntArrayRegion(arrayRef, start: 0, length: length, buffer: &swiftArray)
+    // Now you can use `swiftArray` as a regular Swift array
+    logger.info("🔢 sendIntArray 3 swiftArray: \(swiftArray)")
+}
+
+/// Example of receiving a String object from Java/Kotlin
+@_cdecl("Java_{{namespace}}_{{kotlinclassname}}_sendString")
+public func sendString(envPointer: UnsafeMutablePointer<JNIEnv?>, clazzRef: jobject, strRef: jobject) {
+    // Create lightweight logger object
+    let logger = Logger(label: "🐦‍🔥 SWIFT")
+    // Access current environment
+    let localEnv = JEnv(envPointer)
+    // Defer block to clean up local references
+    defer {
+        // Release local ref to string object
+        localEnv.deleteLocalRef(strRef)
+    }
+    // Wrap JNI string reference into `JString` and get Swift string
+    logger.info("🔢 sendString 1")
+    guard let string = strRef.wrap().string() else {
+        logger.info("🔢 sendString 1.1 exit: unable to unwrap jstring")
+        return
+    }
+    // Now you can use `string` as a regular Swift string
+    logger.info("🔢 sendString 2: \(string)")
+}
+
+/// Example of receiving a Date object from Java/Kotlin
+@_cdecl("Java_{{namespace}}_{{kotlinclassname}}_sendDate")
+public func sendDate(envPointer: UnsafeMutablePointer<JNIEnv?>, clazzRef: jobject, dateRef: jobject) {
+    // Create lightweight logger object
+    let logger = Logger(label: "🐦‍🔥 SWIFT")
+    // Access current environment
+    let localEnv = JEnv(envPointer)
+    // Defer block to clean up local references
+    defer {
+        // Release local ref to date object
+        localEnv.deleteLocalRef(dateRef)
+    }
+    // Wrap JNI date reference into `JObjectBox`
+    logger.info("🔢 sendDate 1")
+    guard let box = dateRef.box(localEnv) else {
+        logger.info("🔢 sendDate 1.1 exit: unable to box Date object")
+        return
+    }
+    // Initialize `JObject` from boxed global reference to the date
+    logger.info("🔢 sendDate 2")
+    guard let dateObject = box.object() else {
+        logger.info("🔢 sendDate 2.1 exit: unable to unwrap Date object")
+        return
+    }
+    // Call `getTime` method to get milliseconds since epoch
+    logger.info("🔢 sendDate 3")
+    guard let milliseconds = dateObject.callLongMethod(name: "getTime") else {
+        logger.info("🔢 sendDate 3.1 exit: getTime returned nil, maybe wrong method")
+        return
+    }
+    // Now you can use `milliseconds` as a regular Swift Int64 value
+    logger.info("🔢 sendDate 4: \(milliseconds)")
+}
+
+/// Example of synchronously returning a string to Java/Kotlin
+@_cdecl("Java_{{namespace}}_{{kotlinclassname}}_ping")
+public func ping(envPointer: UnsafeMutablePointer<JNIEnv?>, clazzRef: jobject) -> jobject? {
+    // Wrap Swift string into `JSString` and return its JNI reference
+    return "Pong from Swift!".wrap().reference()
+}
+
+/// Example of async operation
+@_cdecl("Java_{{namespace}}_{{kotlinclassname}}_fetchAsyncData")
+public func fetchAsyncData(env: UnsafeMutablePointer<JNIEnv>, obj: jobject) -> jstring? {
+    // Create semaphore to wait for async task
+    let semaphore = DispatchSemaphore(value: 0)
+    // Create result variable
+    var result: String? = nil
+    // Start async task
+    Task {
+        // Simulate async operation
+        try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+        // Set result
+        result = "Async data fetched successfully!"
+        // Release semaphore
+        semaphore.signal()
+    }
+    // Wait for async task to complete by blocking current thread
+    semaphore.wait()
+    // Check if result is available
+    guard let result = result else { return nil }
+    // Wrap Swift string into `JSString` and return its JNI reference
+    return result.wrap().reference()
+}
+#endif
+
+// MARK: - Java Object Wrapper Examples
+
+// Example of Date object wrapper
+
+/// A classic example of how to wrap a Java object into a Swift class.
+/// 
+/// Here we wrap `java.util.Date` object and provide some convenience methods.
+public final class JDate: JObjectable, Sendable {
+    /// The JNI class name
+    public static let className: JClassName = "java/util/Date"
+
+    /// JNI global reference object wrapper, it contains class metadata as well.
+    public let object: JObject
+
+    /// Initializer for when you already have a `JObject` reference.
+    /// 
+    /// This is useful when you receive a `Date` object from Java code.
+    public init (_ object: JObject) {
+        self.object = object
+    }
+
+    /// Allocates a `Date` object and initializes it so that it represents the time
+    /// at which it was allocated, measured to the nearest millisecond.
+    public init? () {
+        #if os(Android)
+        guard
+            // Access current environment
+            let env = JEnv.current(),
+            // It finds the `java.util.Date` class and loads it directly or from the cache
+            let clazz = JClass.load(Self.className),
+            // Call to create a new instance of `java.util.Date` and get a global reference to it
+            let global = clazz.newObject(env)
+        else { return nil }
+        // Store the object to access it from methods
+        self.object = global
+        #else
+        // For non-Android platforms, return nil
+        return nil
+        #endif
+    }
+
+    /// Allocates a `Date` object and initializes it to represent the specified number of milliseconds since the standard base time known as "the epoch", namely January 1, 1970, 00:00:00 GMT.
+    /// 
+    /// - Parameter milliseconds: The number of milliseconds since January 1, 1970, 00:00:00 GMT.
+    public init? (_ milliseconds: Int64) {
+        #if os(Android)
+        guard
+            // Access current environment
+            let env = JEnv.current(),
+            // It finds the `java.util.Date` class and loads it directly or from the cache
+            let clazz = JClass.load(Self.className),
+            // Call to create a new instance of `java.util.Date`
+            // with `milliseconds` parameter and get a global reference to it
+            let global = clazz.newObject(env, args: milliseconds)
+        else { return nil }
+        // Store the object to access it from methods
+        self.object = global
+        #else
+        // For non-Android platforms, return nil
+        return nil
+        #endif
+    }
+
+    /// Returns the day of the week represented by this date.
+    public func day() -> Int32? {
+        // Convenience call to `java.util.Date.getDay()`
+        object.callIntMethod(name: "getDay")
+    }
+
+    /// Returns the hour represented by this Date object.
+    public func hours() -> Int32? {
+        // Convenience call to `java.util.Date.getHours()`
+        object.callIntMethod(name: "getHours")
+    }
+
+    /// Returns the number of minutes past the hour represented by this date
+    public func minutes() -> Int32? {
+        // Convenience call to `java.util.Date.getMinutes()`
+        object.callIntMethod(name: "getMinutes")
+    }
+
+    /// Returns the number of seconds past the minute represented by this date.
+    public func seconds() -> Int32? {
+        // Convenience call to `java.util.Date.getSeconds()`
+        object.callIntMethod(name: "getSeconds")
+    }
+
+    /// Returns the number of milliseconds since January 1, 1970, 00:00:00 GMT for this date instance.
+    public func time() -> Int32? {
+        // Convenience call to `java.util.Date.getTime()`
+        object.callIntMethod(name: "getTime")
+    }
+
+    /// Tests if this date is before the specified date.
+    public func before(_ date: JDate) -> Bool {
+        // Convenience call to `java.util.Date.before(Date date)`
+        // which passes another `Date` object as a parameter
+        // and returns a boolean result
+        object.callBoolMethod(name: "before", args: date.object.signed(as: JDate.className)) ?? false
+    }
+
+    /// Tests if this date is after the specified date.
+    public func after(_ date: JDate) -> Bool {
+        // Convenience call to `java.util.Date.after(Date date)`
+        // which passes another `Date` object as a parameter
+        // and returns a boolean result
+        object.callBoolMethod(name: "after", args: date.object.signed(as: JDate.className)) ?? false
+    }
+
+    /// Converts this java `Date` object to a Swift `Date`.
+    public func date() -> Date? {
+        // Get milliseconds since epoch using `getTime` method
+        guard let time = time() else { return nil }
+        // Convert milliseconds to seconds and create a Swift `Date` object
+        return Date(timeIntervalSince1970: TimeInterval(time) / 1000.0)
+    }
+}

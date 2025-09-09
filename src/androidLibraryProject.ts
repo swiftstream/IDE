@@ -94,7 +94,8 @@ export class AndroidLibraryProject {
                     Handlebars.compile(readFile(path.join('assets', 'Sources', 'android', 'library', 'Sources', 'kotlin', 'Library.hbs')))({
                         namespace: buildPayload.namespace,
                         kotlinclassname: 'SwiftInterface',
-                        target: buildPayload.targetName
+                        target: buildPayload.targetName,
+                        methodname: 'initialize'
                     })
                 )
             }
