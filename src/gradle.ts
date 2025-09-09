@@ -44,9 +44,18 @@ export class Gradle {
         if (!projectDirectory) return false
         if (this.isGeneratingWrapper) return false
         return new Promise(async (resolve) => {
+            const env = await this.stream.bash.getShellEnv()
+            // Filter out problematic variables and create export statements
+            const safeEnvEntries = Object.entries(env)
+            .filter(([key, value]) => key && value && !key.includes('LESS') && !key.includes('VSCODE_NLS_CONFIG'))
+            .map(([key, value]) => `export ${key}='${value?.toString().replace(/'/g, "'\\''")}'`)
+            .join('\n')
+            const tempEnvFile = `/tmp/gradle_env_${Date.now()}.sh`
             this.generateWrapperTask = new GradleTaskProvider(
                 'gradle wrapper',
-                `cd ${this.cwd} && gradle wrapper`,
+                `cat > '${tempEnvFile}' << 'EOF'\n${safeEnvEntries}\nEOF\n` +
+                `. '${tempEnvFile}' && cd '${this.cwd.replace(/'/g, "'\\''")}'` +
+                ` && gradle wrapper && rm '${tempEnvFile}'`,
                 {
                     onStart: () => {
                         this.isGeneratingWrapper = true
