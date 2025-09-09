@@ -8,7 +8,7 @@ import { CancellableTaskRunner } from './embeddedBuildTaskRunner'
 export class Bash {
     whichCache: {} = {}
 
-    private async getShellEnv(): Promise<NodeJS.ProcessEnv> {
+    async getShellEnv(): Promise<NodeJS.ProcessEnv> {
         return new Promise((resolve, reject) => {
             exec(`/bin/bash -l -c env`, (err, stdout) => {
                 if (err) {
