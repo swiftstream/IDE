@@ -205,7 +205,7 @@ export class SidebarTreeView implements TreeDataProvider<Dependency> {
 				} else if (extensionStream === ExtensionStream.Android) {
 					items.push(new Dependency({
 						id: SideTreeItem.Debug,
-						label: 'Project',
+						label: 'Swift Project',
 						version: `${workspace.name?.split('[Dev')[0] ?? ''}`,
 						state: this.expandState(SideTreeItem.Debug),
 						icon: 'coffee',
@@ -226,10 +226,10 @@ export class SidebarTreeView implements TreeDataProvider<Dependency> {
 					if (libItems.length > 0) {
 						items.push(new Dependency({
 							id: SideTreeItem.GradleLibrary,
-							label: 'Gradle Library',
+							label: 'Java Library Project',
 							version: ``,
 							state: this.expandState(SideTreeItem.Debug),
-							icon: this.fileIcon('gradle'),
+							icon: this.fileIcon('java3'),
 							skipCommand: true
 						}))
 					}
@@ -237,10 +237,10 @@ export class SidebarTreeView implements TreeDataProvider<Dependency> {
 					if (appItems.length > 0) {
 						items.push(new Dependency({
 							id: SideTreeItem.GradleApp,
-							label: 'Gradle Application',
+							label: 'Java App Project',
 							version: ``,
 							state: this.expandState(SideTreeItem.Debug),
-							icon: this.fileIcon('gradle'),
+							icon: this.fileIcon('java3'),
 							skipCommand: true
 						}))
 					}
