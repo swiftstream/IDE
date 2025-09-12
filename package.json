@@ -438,7 +438,7 @@
       },
       {
         "view": "swiftstreamSidebar",
-        "contents": "Ready to create a project?\n[Start New Project](command:startNewProjectWizard)\n[Open project](command:openProject)",
+        "contents": "Ready to create a project?\n[Start New Project](command:startNewProjectWizard)\n[Open Existing Project](command:openProject)",
         "when": "swiftstream.state == NoProjectFolder"
       },
       {
