@@ -375,13 +375,13 @@ export class AndroidStream extends Stream {
                 version: this.isAutoRunEnabled ? 'Enabled' : 'Disabled',
                 icon: this.isAutoRunEnabled ? 'pass::charts.green' : 'circle-large-outline'
             }))
-            items.push(new Dependency({
-                id: SideTreeItem.JNILogs,
-                label: 'JNI logs',
-                version: this.isJNILogsEnabled ? 'Enabled' : 'Disabled',
-                icon: this.isJNILogsEnabled ? 'pass::charts.green' : 'circle-large-outline'
-            }))
         }
+        items.push(new Dependency({
+            id: SideTreeItem.JNILogs,
+            label: 'JNI logs',
+            version: this.isJNILogsEnabled ? 'Enabled' : 'Disabled',
+            icon: this.isJNILogsEnabled ? 'pass::charts.green' : 'circle-large-outline'
+        }))
         return items
     }
     async releaseItems(): Promise<Dependency[]> { return [] }
