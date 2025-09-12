@@ -675,7 +675,8 @@ async function createNewProjectFiles(
 					ExtensionStream.Android,
 					defaultSwiftVersion
 				)) return
-				let androidType = selectedValues['android-type']
+				const androidType = selectedValues['android-type']
+				const androidPhoneAppType = selectedValues['android-phone-app-type']
 				const config = await AndroidStreamConfig.createInitialConfig({
 					projectPath: path,
 					projectName: name,
@@ -721,9 +722,27 @@ async function createNewProjectFiles(
 						const type = targetFolder.split('/').pop()
 						switch (type) {
 							case 'App':
-								writeFile({ from: 'App.hbs', to: 'App.swift', payload: { name: name, activities: ['Main'] } })
-								const activitiesFolder = createSubfolderIfNeeded(targetFolder, 'Activities')
-								writeFile({ folder: activitiesFolder, from: 'MainActivity.hbs', to: 'MainActivity.swift', payload: hbsSourcePayload })
+								switch (androidPhoneAppType) {
+									case 'empty': {
+										writeFile({ from: 'App.hbs', to: 'App.swift', payload: { name: name, activities: ['Main'] } })
+										const activitiesFolder = createSubfolderIfNeeded(targetFolder, 'Activities')
+										writeFile({ folder: activitiesFolder, from: 'MainActivity.hbs', to: 'MainActivity.swift', payload: hbsSourcePayload })
+										break
+									}
+									case 'basic': {
+										writeFile({ from: 'App.hbs', to: 'App.swift', payload: { name: name, activities: ['Main'] } })
+										const activitiesFolder = createSubfolderIfNeeded(targetFolder, 'Activities')
+										writeFile({ folder: activitiesFolder, from: 'MainActivity.hbs', to: 'MainActivity.swift', payload: hbsSourcePayload })
+										break
+									}
+									case 'bottom-nav': {
+										writeFile({ from: 'App.hbs', to: 'App.swift', payload: { name: name, activities: ['Main'] } })
+										const activitiesFolder = createSubfolderIfNeeded(targetFolder, 'Activities')
+										writeFile({ folder: activitiesFolder, from: 'MainActivity.hbs', to: 'MainActivity.swift', payload: hbsSourcePayload })
+										break
+									}
+									default: break
+								}
 								break
 							case 'AppUI':
 								writeFile({ from: 'AppUI.hbs', to: 'AppUI.swift', payload: {} })

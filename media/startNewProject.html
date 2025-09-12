@@ -213,12 +213,22 @@
                 { type: 'hummingbird', title: 'Hummingbird Server', logo: 'logo-hummingbird' }
             ]
         }
+        const androidPhoneAppLevel = {
+            id: 'android-phone-app-type',
+            title: 'Type',
+            required: true,
+            items: [
+                { type: 'empty', title: 'Empty Activity', logo: 'android-activity-empty' },
+                { type: 'basic', title: 'Basic Activity', logo: 'android-activity-basic' },
+                { type: 'bottom-nav', title: 'Bottom Navigation Activity', logo: 'android-activity-bottom-nav' }
+            ]
+        }
         const androidStreamLevel = {
             id: 'android-type',
             title: 'Type',
             required: true,
             items: [
-                { type: 'app', title: 'Application', logo: 'logo-phone' },
+                //{ type: 'app', title: 'Application', logo: 'logo-phone', sublevel: androidPhoneAppLevel },
                 { type: 'library', title: 'Library', logo: 'logo-package' }
             ]
         }
