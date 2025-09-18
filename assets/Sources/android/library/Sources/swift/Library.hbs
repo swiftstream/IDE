@@ -184,7 +184,7 @@ public func ping(envPointer: UnsafeMutablePointer<JNIEnv?>, clazzRef: jobject) -
     return "🏓 Pong from Swift!".wrap().reference()
 }
 
-/// Example of async operation
+/// Example of async operation with semaphore
 @_cdecl("Java_{{namespace}}_{{kotlinclassname}}_fetchAsyncData")
 public func fetchAsyncData(env: UnsafeMutablePointer<JNIEnv>, obj: jobject) -> jstring? {
     // Create semaphore to wait for async task
@@ -209,6 +209,22 @@ public func fetchAsyncData(env: UnsafeMutablePointer<JNIEnv>, obj: jobject) -> j
     guard let result = atomicResult.value else { return nil }
     // Wrap Swift string into `JSString` and return its JNI reference
     return result.wrap().reference()
+}
+
+/// Example of async operation with callback
+@_cdecl("Java_{{namespace}}_{{kotlinclassname}}_fetchAsyncDataWithCallback")
+public func fetchAsyncDataWithCallback(env: UnsafeMutablePointer<JNIEnv?>, obj: jobject, callback: jobject) {
+    let env = JEnv(env)
+    defer { env.deleteLocalRef(callback) }
+    guard let object = callback.box(env)?.object() else { return }
+    Task {
+        // Simulate async operation
+        try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+        guard
+            let result = "Async data fetched successfully!".wrap()?.signedAsString()
+        else { return }
+        object.callVoidMethod(name: "onResult", args: result)
+    }
 }
 #endif
 
