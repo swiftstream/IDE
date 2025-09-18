@@ -190,20 +190,23 @@ public func fetchAsyncData(env: UnsafeMutablePointer<JNIEnv>, obj: jobject) -> j
     // Create semaphore to wait for async task
     let semaphore = DispatchSemaphore(value: 0)
     // Create result variable
-    var result: String? = nil
+    final class AtomicResult: @unchecked Sendable {
+        var value: String? = nil
+    }
+    let atomicResult = AtomicResult()
     // Start async task
-    Task {
+    Task { @Sendable in
         // Simulate async operation
         try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
         // Set result
-        result = "Async data fetched successfully!"
+        atomicResult.value = "Async data fetched successfully!"
         // Release semaphore
         semaphore.signal()
     }
     // Wait for async task to complete by blocking current thread
     semaphore.wait()
     // Check if result is available
-    guard let result = result else { return nil }
+    guard let result = atomicResult.value else { return nil }
     // Wrap Swift string into `JSString` and return its JNI reference
     return result.wrap().reference()
 }
