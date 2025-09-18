@@ -14,16 +14,13 @@ The extension provides a convenient environment packed with features that togeth
 
 - **Web**: Progressive web apps using WebAssembly
 - **Server**: Backend apps using Vapor and Hummingbird
+- **Android**: Apps (coming soon) and libraries (available today) via JNI
 - **Embedded**: ESP32-C6, Raspberry Pi Pico, STM32, nrf52
 - **Pure**: Libraries, macros, CLI tools, etc.
 
 Projects for any of these streams can be easily created via the **"Start New Project"** wizard:
 
 ![StartNewProjectDemoGIF](https://swift.stream/assets/images/github/StartNewProjectDemo.gif)
-
-## ⌛️ Coming Soon (WIP)
-
-- **Android**: Apps and libraries via JNI
 
 ## 📱 iOS, macOS, etc.
 
