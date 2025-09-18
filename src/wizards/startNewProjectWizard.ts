@@ -138,7 +138,7 @@ async function createNewProjectFiles(
 		var dependencies: any[] = []
 		Handlebars.registerHelper('eq', (a, b) => a === b)
 		Handlebars.registerHelper('arrNotEmpty', (a) => a && a.length > 0)
-		const defaultSwiftVersion = { major: 6, minor: 1 }
+		const defaultSwiftVersion = { major: 6, minor: 2 }
 		switch (streamType) {
 			case 'web':
 				if (!generateAndWriteDevcontainerJson(
@@ -505,7 +505,7 @@ async function createNewProjectFiles(
 					case 'vapor':
 						await (async function () {
 							let payload = {
-								swiftToolsVersion: '6.0',
+								swiftToolsVersion: '6.2',
 								name: name,
 								platforms: '.macOS(.v13)',
 								dependencies: [
@@ -595,7 +595,7 @@ async function createNewProjectFiles(
 					case 'hummingbird':
 						await (async function () {
 							let payload = {
-								swiftToolsVersion: '6.0',
+								swiftToolsVersion: '6.2',
 								name: name,
 								platforms: '.macOS(.v14), .iOS(.v17), .tvOS(.v17)',
 								products: [
@@ -754,7 +754,7 @@ async function createNewProjectFiles(
 						}
 					})
 					let packagePayload = {
-						swiftToolsVersion: '6.1',
+						swiftToolsVersion: '6.2',
 						name: name,
 						platforms: '.macOS(.v10_15)',
 						products: [
@@ -806,7 +806,7 @@ async function createNewProjectFiles(
 						Handlebars.compile(readFile(osPath.join('assets', 'Sources', streamType, androidType, 'Sources', 'swift', 'Library.hbs')))(hbsSourcePayload)
 					)
 					let packagePayload = {
-						swiftToolsVersion: '6.1',
+						swiftToolsVersion: '6.2',
 						name: name,
 						platforms: '.macOS(.v10_15)',
 						products: [
@@ -1117,7 +1117,7 @@ async function createNewProjectFiles(
 				if (!generateAndWriteDevcontainerJson(
 					devContainerPath,
 					ExtensionStream.Pure,
-					{ major: 6, minor: 1 }
+					{ major: 6, minor: 2 }
 				)) return
 				const packageType = selectedValues['package-type']
 				// Copy devcontainer files
