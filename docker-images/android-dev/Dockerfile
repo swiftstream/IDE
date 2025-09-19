@@ -7,12 +7,11 @@ RUN apt update && apt install -y openjdk-17-jdk
 
 # Enable amd64 support to run x86_64 binaries (e.g. aapt2) on arm64
 RUN if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
-    # Remove broken modern source format
-    rm -f /etc/apt/sources.list.d/ubuntu.sources && \
+    # Restrict current sources to arm64 only    
+    sed -i 's/^Types: deb/Types: deb\nArchitectures: arm64/' /etc/apt/sources.list.d/ubuntu.sources && \
+    \
     # Add amd64 architecture
     dpkg --add-architecture amd64 && \
-    # Restrict current sources to arm64 only
-    sed -i 's|^deb |deb [arch=arm64] |g' /etc/apt/sources.list && \
     # Add archive.ubuntu.com sources for amd64
     echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble main restricted universe multiverse" > /etc/apt/sources.list.d/amd64.list && \
     echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble-updates main restricted universe multiverse" >> /etc/apt/sources.list.d/amd64.list && \
