@@ -123,6 +123,11 @@ export async function toolchainCommand(selectedType?: string) {
 				}
 			} else if (extensionStream == ExtensionStream.Android) {
                 devContainerJson.containerEnv.S_ARTIFACT_ANDROID_URL = selectedTag.artifact_url
+				if (selectedTag.version.major === 6 && selectedTag.version.minor >= 2) {
+					devContainerJson.containerEnv.S_NDK_VERSION = 'r27d'
+				} else {
+					devContainerJson.containerEnv.S_NDK_VERSION = 'r27c'
+				}
             } else if (extensionStream == ExtensionStream.Pure || extensionStream == ExtensionStream.Server) {
                 devContainerJson.containerEnv.S_ARTIFACT_STATIC_LINUX_URL = selectedTag.artifact_url
             }
