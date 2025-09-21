@@ -82,6 +82,7 @@ export class AndroidStream extends Stream {
             extensionContext.subscriptions.push(commands.registerCommand(this.generateProjectElement({ type: type }).id, async () => await this.generateGradleProject({ type: type }) ))
             extensionContext.subscriptions.push(commands.registerCommand(this.generateGradleWrapperElement({ type: type }).id, async () => await this.prepareGradleW({ type: type }) ))
             extensionContext.subscriptions.push(commands.registerCommand(this.gradleWAssembleElement({ type: type }).id, async () => await this.gradleWAssemble({ type: type }) ))
+            extensionContext.subscriptions.push(commands.registerCommand(this.jniLogsElement().id, async () => await this.switchJNILogs() ))
             for (let c = 0; c < configurations.length; c++) {
                 const configuration = configurations[c]
                 
@@ -123,6 +124,12 @@ export class AndroidStream extends Stream {
         label: this.gradle(options.type).wrapper.isAssembling ? 'Assembling' : 'Assemble',
         version: `${this.selectedScheme()?.buildConfiguration ?? ''}`,
         icon: this.gradle(options.type).wrapper.isAssembling ? 'sync~spin::charts.green' : sidebarTreeView?.fileIcon('hammer')
+    })
+    jniLogsElement = () => new Dependency({
+        id: SideTreeItem.JNILogs,
+        label: 'JNI logs',
+        version: this.isJNILogsEnabled ? 'Enabled' : 'Disabled',
+        icon: this.isJNILogsEnabled ? 'pass::charts.green' : 'circle-large-outline'
     })
 
     onDidRenameFiles(event: FileRenameEvent) {
@@ -258,6 +265,11 @@ export class AndroidStream extends Stream {
         await this.gradle(options.type).wrapper.assemble({ configuration: configuration })
     }
 
+    async switchJNILogs() {
+        this.isJNILogsEnabled = !this.isJNILogsEnabled
+        sidebarTreeView?.refresh()
+    }
+
     // MARK: Scheme
 
     async chooseScheme(options: {
@@ -376,12 +388,7 @@ export class AndroidStream extends Stream {
                 icon: this.isAutoRunEnabled ? 'pass::charts.green' : 'circle-large-outline'
             }))
         }
-        items.push(new Dependency({
-            id: SideTreeItem.JNILogs,
-            label: 'JNI logs',
-            version: this.isJNILogsEnabled ? 'Enabled' : 'Disabled',
-            icon: this.isJNILogsEnabled ? 'pass::charts.green' : 'circle-large-outline'
-        }))
+        items.push(this.jniLogsElement())
         return items
     }
     async releaseItems(): Promise<Dependency[]> { return [] }
