@@ -103,6 +103,15 @@ export class DevContainerConfig {
         return true
     }
 
+    private checkIfContainerEnvKeyIncludes(key: string, includes: string): boolean {
+        if (!this.checkIfKeyExists('containerEnv')) return false
+        const containerEnv = this.config.containerEnv!
+        if (!containerEnv.hasOwnProperty(key)) return false
+        if (!containerEnv[key]) return false
+        const value: string = containerEnv[key]
+        return value.includes(includes)
+    }
+
     // MARK: Ports
 
     public addOrChangePort(outer: string, inner: string) {
