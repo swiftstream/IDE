@@ -696,7 +696,7 @@ export class WebStream extends Stream {
 	}
 
 	async recommendationsItems(): Promise<Dependency[]> {
-		let items: Dependency[] = []
+		let items: Dependency[] = await super.recommendationsItems()
 		// if (containsUpdateForWeb)
 		// 	items.push(new Dependency({
 		// 		id: SideTreeItem.UpdateWeb,

@@ -313,7 +313,7 @@ export class EmbeddedStream extends Stream {
     }
     async settingsItems(): Promise<Dependency[]> { return [] }
     async isThereAnyRecommendation(): Promise<boolean> { return false }
-    async recommendationsItems(): Promise<Dependency[]> { return [] }
+    async recommendationsItems(): Promise<Dependency[]> { return await super.recommendationsItems() }
     async customItems(element: Dependency): Promise<Dependency[]> {
         if (element.id === SideTreeItem.Device) {
             return this.deviceItems()
