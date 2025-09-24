@@ -42,6 +42,11 @@ export class DevContainerConfig {
         return { major: major, minor: minor, patch: patch }
     }
 
+    public static swiftVersion6_2_0(): boolean {
+        const swiftVersion = this.swiftVersion()
+        return swiftVersion.major == 6 && swiftVersion.minor == 2 && swiftVersion.patch == 0
+    }
+
     public static getEmbeddedBranch(): EmbeddedBranch {
         const config = new DevContainerConfig()
         if (!config.checkIfContainerEnvKeyExists('S_EMBEDDED_BRANCH')) return EmbeddedBranch.Unknown
@@ -77,6 +82,11 @@ export class DevContainerConfig {
     public static checkIfWasiThreadsArtifactURLPresent(): boolean {
         const config = new DevContainerConfig()
         return config.checkIfContainerEnvKeyExists('S_ARTIFACT_WASIP1_THREADS_URL')
+    }
+
+    public static checkIfLegacyAndroidSDK(): boolean {
+        const config = new DevContainerConfig()
+        return config.checkIfContainerEnvKeyIncludes('S_ARTIFACT_ANDROID_URL', 'finagolfin/swift-android-sdk')
     }
 
     public setStaticLinuxArtifactURL(url: string) {
