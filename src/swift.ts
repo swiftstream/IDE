@@ -11,6 +11,7 @@ import { Stream } from './streams/stream'
 import { commands, ProgressLocation, ShellExecution, Task, TaskExecution, TaskProvider, tasks, TaskScope, Terminal, window } from 'vscode'
 import { AbortHandler } from './bash'
 import { SwiftPackageDump } from './swiftPackageDump'
+import { DevContainerConfig } from './devContainerConfig'
 
 export class Swift {
     private packageDump: SwiftPackageDump
@@ -387,6 +388,11 @@ export class Swift {
             '--build-path', options.type == SwiftBuildType.Native ? './.build' : `./.build/.${options.type}`,
             ...(options.swiftArgs ?? [])
         ]
+        function checkAndroidCompileSDKVersion(version: number) {
+            if (version < 28) {
+                throw `Can't compile for SDK v${version}, min version is 28, please increase it in devcontainer.json`
+            }
+        }
         switch (options.mode) {
             case SwiftBuildMode.Standard:
                 if (Swift.v5Mode) args.push('--enable-test-discovery')
@@ -439,24 +445,41 @@ export class Swift {
                     args.push(...['-Xlinker', '--export-if-defined=__main_argc_argv'])
                 }
                 break
-            case SwiftBuildMode.AndroidArm64:
-                args.push(...['--swift-sdk', `aarch64-unknown-linux-android${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`])
+            case SwiftBuildMode.AndroidArm64: {
+                const compileVersion = parseInt(`${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
+                args.push(...['--swift-sdk', `aarch64-unknown-linux-android${compileVersion}`])
+                if (!DevContainerConfig.checkIfLegacyAndroidSDK()) {
+                    checkAndroidCompileSDKVersion(compileVersion)
+                }
                 if (options.androidJNILogs === true) {
                     args.push(...['-Xswiftc', '-DJNILOGS'])
                 }
                 break
-            case SwiftBuildMode.AndroidArmEabi:
-                args.push(...['--swift-sdk', `armv7-unknown-linux-androideabi${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`])
+            }
+            case SwiftBuildMode.AndroidArmEabi: {
+                const compileVersion = parseInt(`${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
+                if (DevContainerConfig.checkIfLegacyAndroidSDK()) {
+                    args.push(...['--swift-sdk', `armv7-unknown-linux-androideabi${compileVersion}`])
+                } else {
+                    args.push(...['--swift-sdk', `armv7-unknown-linux-android${compileVersion}`])
+                    checkAndroidCompileSDKVersion(compileVersion)
+                }
                 if (options.androidJNILogs === true) {
                     args.push(...['-Xswiftc', '-DJNILOGS'])
                 }
                 break
-            case SwiftBuildMode.Androidx86_64:
-                args.push(...['--swift-sdk', `x86_64-unknown-linux-android${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`])
+            }
+            case SwiftBuildMode.Androidx86_64: {
+                const compileVersion = parseInt(`${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
+                args.push(...['--swift-sdk', `x86_64-unknown-linux-android${compileVersion}`])
+                if (!DevContainerConfig.checkIfLegacyAndroidSDK()) {
+                    checkAndroidCompileSDKVersion(compileVersion)
+                }
                 if (options.androidJNILogs === true) {
                     args.push(...['-Xswiftc', '-DJNILOGS'])
                 }
                 break
+            }
         }
         if (!fs.existsSync(`${projectDirectory}/Package.swift`)) {
             throw `Missing Package.swift file`
@@ -1007,7 +1030,11 @@ export function pathToCompiledBinary(params: {
         case SwiftBuildMode.AndroidArm64:
             return path.join(projectDirectory!, '.build', '.droid', `aarch64-unknown-linux-android${params.androidSDKCompileVersion ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`, type, ...target)
         case SwiftBuildMode.AndroidArmEabi:
-            return path.join(projectDirectory!, '.build', '.droid', `armv7-unknown-linux-androideabi${params.androidSDKCompileVersion ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`, type, ...target)
+            if (DevContainerConfig.checkIfLegacyAndroidSDK()) {
+                return path.join(projectDirectory!, '.build', '.droid', `armv7-unknown-linux-androideabi${params.androidSDKCompileVersion ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`, type, ...target)
+            } else {
+                return path.join(projectDirectory!, '.build', '.droid', `armv7-unknown-linux-android${params.androidSDKCompileVersion ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`, type, ...target)
+            }
         case SwiftBuildMode.Androidx86_64:
             return path.join(projectDirectory!, '.build', '.droid', `x86_64-unknown-linux-android${params.androidSDKCompileVersion ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`, type, ...target)
     }

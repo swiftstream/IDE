@@ -484,7 +484,11 @@ export function droidBuildArchToSwiftBuildFolder(options: {
         case DroidBuildArch.Arm64:
             return path.join(projectDirectory!, '.build', '.droid', `aarch64-unknown-linux-android${options.compileSDK ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
         case DroidBuildArch.ArmEabi:
-            return path.join(projectDirectory!, '.build', '.droid', `armv7-unknown-linux-androideabi${options.compileSDK ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
+            if (DevContainerConfig.checkIfLegacyAndroidSDK()) {
+                return path.join(projectDirectory!, '.build', '.droid', `armv7-unknown-linux-androideabi${options.compileSDK ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
+            } else {
+                return path.join(projectDirectory!, '.build', '.droid', `armv7-unknown-linux-android${options.compileSDK ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
+            }
         case DroidBuildArch.x86_64:
             return path.join(projectDirectory!, '.build', '.droid', `x86_64-unknown-linux-android${options.compileSDK ?? env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
     }

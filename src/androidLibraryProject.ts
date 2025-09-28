@@ -292,9 +292,14 @@ export class AndroidLibraryProject {
             `$1jvmTarget = "${newJavaVersion}"`
         )
         print(`    setting Java version to: ${newJavaVersion}`, LogLevel.Verbose)
+        const isProblematic6_2_0 = DevContainerConfig.swiftVersion6_2_0()
+        let versionSuffix = ''
+        if (isProblematic6_2_0) {
+            versionSuffix = '-16kb'
+        }
         buildGradleFile = buildGradleFile.replace(
             /(implementation\(["']com\.github\.swifdroid\.runtime-libs:core:)([^"']+)(["']\))/,
-            `$1${options.swiftVersion}$3`
+            `$1${options.swiftVersion}${versionSuffix}$3`
         )
         print(`    setting Swift in "core" dependency to: ${options.swiftVersion}`, LogLevel.Verbose)
         fs.writeFileSync(buildGradlePath, buildGradleFile, 'utf8')
@@ -433,15 +438,22 @@ export class AndroidLibraryProject {
                 print(`⚠️ Skipped setting dependencies for lib${target}.so since special tag is missing`, LogLevel.Detailed)
                 continue
             }
+            const isLegacySDK = DevContainerConfig.checkIfLegacyAndroidSDK()
             let dependencies: string[] = []
             if (options.streamConfig.config.soMode === SoMode.Packed) {
                 for (let s = 0; s < elfResult.list.length; s++) {
                     const so = elfResult.list[s]
-                    if (AndroidLibraryProject.compression.includes(so) && !dependencies.includes('compression')) {
+                    if (isLegacySDK && AndroidLibraryProject.compressionLegacy.includes(so) && !dependencies.includes('compression')) {
                         dependencies.push('compression')
                     }
-                    if (AndroidLibraryProject.foundation.includes(so) && !dependencies.includes('foundation')) {
-                        dependencies.push('foundation')
+                    if (isLegacySDK) {
+                        if (AndroidLibraryProject.foundationLegacy.includes(so) && !dependencies.includes('foundation')) {
+                            dependencies.push('foundation')
+                        }
+                    } else {
+                        if (AndroidLibraryProject.foundation.includes(so) && !dependencies.includes('foundation')) {
+                            dependencies.push('foundation')
+                        }
                     }
                     if (AndroidLibraryProject.foundationessentials.includes(so) && !dependencies.includes('foundationessentials')) {
                         dependencies.push('foundationessentials')
@@ -449,16 +461,33 @@ export class AndroidLibraryProject {
                     if (AndroidLibraryProject.i18n.includes(so) && !dependencies.includes('i18n')) {
                         dependencies.push('i18n')
                     }
-                    if (AndroidLibraryProject.networking.includes(so) && !dependencies.includes('networking')) {
-                        dependencies.push('networking')
+                    if (isLegacySDK) {
+                        if (AndroidLibraryProject.networkingLegacy.includes(so) && !dependencies.includes('networking')) {
+                            dependencies.push('networking')
+                        }
+                    } else {
+                        if (AndroidLibraryProject.networking.includes(so) && !dependencies.includes('networking')) {
+                            dependencies.push('networking')
+                        }
                     }
                     if (AndroidLibraryProject.testing.includes(so) && !dependencies.includes('testing')) {
                         dependencies.push('testing')
                     }
-                    if (AndroidLibraryProject.xml.includes(so) && !dependencies.includes('xml')) {
-                        dependencies.push('xml')
+                    if (isLegacySDK) {
+                        if (AndroidLibraryProject.xmlLegacy.includes(so) && !dependencies.includes('xml')) {
+                            dependencies.push('xml')
+                        }
+                    } else {
+                        if (AndroidLibraryProject.xml.includes(so) && !dependencies.includes('xml')) {
+                            dependencies.push('xml')
+                        }
                     }
                 }
+            }
+            const isProblematic6_2_0 = DevContainerConfig.swiftVersion6_2_0()
+            let versionSuffix = ''
+            if (isProblematic6_2_0) {
+                versionSuffix = '-16kb'
             }
             const before = buildGradleFile.split(begin)[0]
             const after = buildGradleFile.split(end)[1]
@@ -467,7 +496,7 @@ export class AndroidLibraryProject {
             if (options.streamConfig.config.soMode === SoMode.Packed) {
                 for (let d = 0; d < dependencies.length; d++) {
                     const dependency = dependencies[d]
-                    newContent += `\n    implementation("com.github.swifdroid.runtime-libs:${dependency}:${options.swiftVersion}")`
+                    newContent += `\n    implementation("com.github.swifdroid.runtime-libs:${dependency}:${options.swiftVersion}${versionSuffix}")`
                 }
             }
             newContent += '\n    ' + end
@@ -475,14 +504,18 @@ export class AndroidLibraryProject {
             fs.writeFileSync(buildGradlePath, newContent, 'utf8')
         }
     }
-    static compression: string[] = [
+    static compressionLegacy: string[] = [
         'liblzma.so',
         'libz.so'
+    ]
+    static foundationLegacy: string[] = [
+        'lib_FoundationICU.so',
+        'libFoundation.so',
+        'libiconv.so'
     ]
     static foundation: string[] = [
         'lib_FoundationICU.so',
         'libFoundation.so',
-        'libiconv.so'
     ]
     static foundationessentials: string[] = [
         'libFoundationEssentials.so'
@@ -490,7 +523,7 @@ export class AndroidLibraryProject {
     static i18n: string[] = [
         'libFoundationInternationalization.so'
     ]
-    static networking: string[] = [
+    static networkingLegacy: string[] = [
         'libcrypto.so',
         'libcurl.so',
         'libFoundationNetworking.so',
@@ -499,13 +532,19 @@ export class AndroidLibraryProject {
         'libssh2.so',
         'libssl.so'
     ]
+    static networking: string[] = [
+        'libFoundationNetworking.so'
+    ]
     static testing: string[] = [
         'libTesting.so',
         'libXCTest.so'
     ]
-    static xml: string[] = [
+    static xmlLegacy: string[] = [
         'libFoundationXML.so',
         'libxml2.so'
+    ]
+    static xml: string[] = [
+        'libFoundationXML.so'
     ]
 
     static createFolderStructureIfNeeded(baseDir: string, dottedPath: string): string {
