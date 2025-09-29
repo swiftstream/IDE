@@ -84,6 +84,72 @@ if ! grep -q "ANDROID_NDK_HOME=${NDK_DIR}" ~/.bashrc 2>/dev/null; then
     echo -e "${BLUE}→ ANDROID_NDK_HOME added to .bashrc${NC}"
 fi
 
+# MARK: Swift for Android SDK setup script
+setup_swift_android_sdk() {
+    # Check if S_ARTIFACT_ANDROID_URL is set and matches the pattern
+    if [[ -z "${S_ARTIFACT_ANDROID_URL}" ]]; then
+        return 0  # Skip silently
+    fi
+
+    # Check if URL starts with the Swift Android SDK GitHub pattern
+    if [[ "${S_ARTIFACT_ANDROID_URL}" != https://github.com/swift-android-sdk/swift-android-sdk* ]]; then
+        return 0  # Skip silently
+    fi
+
+    echo -e "${BLUE}🔍 Swift Android SDK detected, looking for setup script...${NC}"
+
+    # Extract the artifact bundle name from the URL
+    local archive_name=$(basename "${S_ARTIFACT_ANDROID_URL}")
+    local artifact_bundle_name="${archive_name%.tar.gz}"
+    
+    # Construct the expected installation path
+    local sdk_path="/swift/sdks/${artifact_bundle_name}"
+    local setup_script="${sdk_path}/swift-android/scripts/setup-android-sdk.sh"
+
+    echo -e "${BLUE}📦 Expected SDK path:${NC} ${sdk_path}"
+    echo -e "${BLUE}🔧 Setup script:${NC} ${setup_script}"
+
+    # Check if the SDK directory exists
+    if [[ ! -d "${sdk_path}" ]]; then
+        echo -e "${YELLOW}⚠️ Swift Android SDK directory not found: ${sdk_path}${NC}"
+        return 1
+    fi
+
+    # Check if the setup script exists
+    if [[ ! -f "${setup_script}" ]]; then
+        echo -e "${YELLOW}⚠️ Setup script not found: ${setup_script}${NC}"
+        echo -e "${BLUE}📁 Available files in SDK directory:${NC}"
+        find "${sdk_path}" -type f -name "*.sh" | head -10 | sed 's/^/  /'
+        return 1
+    fi
+
+    # Check if the script is executable, if not make it executable
+    if [[ ! -x "${setup_script}" ]]; then
+        echo -e "${YELLOW}⚠️ Setup script is not executable, fixing...${NC}"
+        chmod +x "${setup_script}"
+    fi
+
+    echo -e "${GREEN}🚀 Running Swift Android SDK setup...${NC}"
+    echo -e "${BLUE}📝 Executing:${NC} ${setup_script}"
+
+    # Execute the setup script
+    if "${setup_script}"; then
+        echo -e "${GREEN}✅ Swift Android SDK setup completed${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ Swift Android SDK setup failed${NC}"
+        return 1
+    fi
+}
+
+echo -e "${BLUE}🔎 Checking for Swift Android SDK setup...${NC}"
+
+if setup_swift_android_sdk; then
+    echo -e "${GREEN}✅ Swift Android SDK setup check completed${NC}"
+else
+    echo -e "${YELLOW}⚠️ Swift Android SDK setup was skipped or failed${NC}"
+fi
+
 # MARK: Android SDK setup
 SDK_VERSION="${S_SDK_VERSION:-35}"
 SDK_CMDTOOLS_REV="${S_SDK_CMDTOOLS_REV:-11076708}"
