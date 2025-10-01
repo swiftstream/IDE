@@ -2,15 +2,17 @@
 
 **Swift Stream** is a powerful **IDE** for VS Code that enhances your ability to work with Swift projects beyond the traditional iOS/macOS ecosystem.
 
-**[Install from marketplace](https://marketplace.visualstudio.com/items/?itemName=swiftstream.swiftstream)**
+Are you tired of dealing with broken projects over time, struggling to set up Swift with its many platform-specific nuances, or simply curious about trying Swift on **non-Apple platforms**? This extension is here to help!
+
+For the best experience, we recommend using it with the **[Xcode Theme](https://marketplace.visualstudio.com/items?itemName=MateoCERQUETELLA.xcode-12-theme)** extension.
 
 ## 🐳 Containerized Swift Development
 
-Are you tired of dealing with broken projects over time, struggling to set up Swift with its many platform-specific nuances, or simply curious about trying Swift on **non-Apple platforms**? This extension is here to help!
+This extension enables you to write Swift code for **multiple streams** on **any platform**, all within a Docker container.
 
-It enables you to write Swift code for **multiple streams** on **any platform**, all within a Docker container.
+With a feature-packed and user-friendly environment, it ensures an exceptional development experience.
 
-With a feature-packed and user-friendly environment, this extension ensures an exceptional development experience.
+**[Install from the marketplace](https://marketplace.visualstudio.com/items/?itemName=swiftstream.swiftstream)**
 
 ## 🔧 Before Installation
 
