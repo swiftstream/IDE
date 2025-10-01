@@ -6,9 +6,16 @@
 
 ## 🐳 Containerized Swift Development
 
-It gives you the ability to write Swift code for **multiple streams** on **any platform**, all inside a Docker container!
+Are you tired of dealing with broken projects over time, struggling to set up Swift with its many platform-specific nuances, or simply curious about trying Swift on **non-Apple platforms**? This extension is here to help!
 
-The extension provides a convenient environment packed with features that together deliver an incredible development experience.
+It enables you to write Swift code for **multiple streams** on **any platform**, all within a Docker container.
+
+With a feature-packed and user-friendly environment, this extension ensures an exceptional development experience.
+
+## 🔧 Before Installation
+
+Ensure you have the **[Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)** extension installed in VS Code.  
+Additionally, make sure **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** or **[Docker Engine](https://docs.docker.com/engine/)** is installed and running on your machine, depending on the requirements of the **Dev Containers** extension for your platform.
 
 ## 🌊 Choose Your Stream
 
