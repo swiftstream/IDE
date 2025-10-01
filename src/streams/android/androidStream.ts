@@ -83,6 +83,7 @@ export class AndroidStream extends Stream {
             extensionContext.subscriptions.push(commands.registerCommand(this.generateGradleWrapperElement({ type: type }).id, async () => await this.prepareGradleW({ type: type }) ))
             extensionContext.subscriptions.push(commands.registerCommand(this.gradleWAssembleElement({ type: type }).id, async () => await this.gradleWAssemble({ type: type }) ))
             extensionContext.subscriptions.push(commands.registerCommand(this.jniLogsElement().id, async () => await this.switchJNILogs() ))
+            extensionContext.subscriptions.push(commands.registerCommand(this.upgradeTo_6_2_16kb_Element().id, async () => await this.upgradeToSwift6_2_16kb() ))
             for (let c = 0; c < configurations.length; c++) {
                 const configuration = configurations[c]
                 
@@ -130,6 +131,12 @@ export class AndroidStream extends Stream {
         label: 'JNI logs',
         version: this.isJNILogsEnabled ? 'Enabled' : 'Disabled',
         icon: this.isJNILogsEnabled ? 'pass::charts.green' : 'circle-large-outline'
+    })
+    upgradeTo_6_2_16kb_Element = () => new Dependency({
+        id: 'upg_to_6_2_16kb',
+        label: 'Upgrade to Swift 6.2',
+        version: 'with 16KB page size',
+        icon: 'refresh::charts.green'
     })
 
     onDidRenameFiles(event: FileRenameEvent) {
@@ -268,6 +275,23 @@ export class AndroidStream extends Stream {
     async switchJNILogs() {
         this.isJNILogsEnabled = !this.isJNILogsEnabled
         sidebarTreeView?.refresh()
+    }
+
+    async upgradeToSwift6_2_16kb() {
+        const selection = await window.showQuickPick(['Yes', 'No'], {
+            placeHolder: `Upgrade and rebuild devconatiner?`
+        })
+        if (!selection || selection !== 'Yes') return
+        const streamConfig = new AndroidStreamConfig({ projectPath: projectDirectory! })
+        if (streamConfig.config.minSDK < 28) {
+            streamConfig.config.minSDK = 28
+            streamConfig.save()
+        }
+        const config = new DevContainerConfig()
+        config.setAndroidArtifactURL('https://github.com/swift-android-sdk/swift-android-sdk/releases/download/6.2/swift-6.2-RELEASE-android-0.1.artifactbundle.tar.gz')
+        config.save()
+        sidebarTreeView?.refresh()
+        await commands.executeCommand('remote-containers.rebuildContainer')
     }
 
     // MARK: Scheme
@@ -454,8 +478,14 @@ export class AndroidStream extends Stream {
     async projectItems(): Promise<Dependency[]> { return [] }
     async maintenanceItems(): Promise<Dependency[]> { return [] }
     async settingsItems(): Promise<Dependency[]> { return [] }
-    async isThereAnyRecommendation(): Promise<boolean> { return false }
-    async recommendationsItems(): Promise<Dependency[]> { return [] }
+    // async isThereAnyRecommendation(): Promise<boolean> { return false }
+    async recommendationsItems(): Promise<Dependency[]> {
+        let items = await super.recommendationsItems()
+        if (DevContainerConfig.checkIfLegacyAndroidSDK() && DevContainerConfig.swiftVersion6_2_0()) {
+            items.push(this.upgradeTo_6_2_16kb_Element())
+        }
+        return items
+    }
     async customItems(element: Dependency): Promise<Dependency[]> { return await super.customItems(element) }
 }
 
