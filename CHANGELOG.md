@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.14.1] - 2025-10-01
+### Removed
+- DevContainerConfig: removed predefined editor `fontFamily` and `codeLensFontFamily`
+
 ## [1.14.0] - 2025-10-01
 ### Added
 - Android docker image: execute official SDK setup script if present
