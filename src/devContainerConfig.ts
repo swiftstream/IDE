@@ -303,9 +303,7 @@ export const generateDevcontainerJson = (
 					'swift.autoGenerateLaunchConfigurations': true,
 					'swift.backgroundCompilation': false,
 					'swift.showCreateSwiftProjectInWelcomePage': false,
-					'editor.semanticHighlighting.enabled': true,
-					'editor.fontFamily': 'Verdana, Verdana, Menlo, Monaco, \'Courier New\', monospace',
-					'editor.codeLensFontFamily': 'Verdana, Verdana, Menlo, Monaco, \'Courier New\', monospace'
+					'editor.semanticHighlighting.enabled': true
 				}
 			}
 		},
