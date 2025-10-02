@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.15.0] - 2025-10-03
+### Changed
+- GradleW: use shell `env` in `assemble` to fix cold start issue
+- DevContainerConfig: add `getNDKVersion` method
+- StartNewProject: always use `name` in path
+- Android lib template: use asterisk in `jniLibs`
+- Android: remove hardcoded `core` dependency
+- Android: rework `copySoFiles` logic:
+    - adopt logic for the new upcoming official SDK
+    - use `soFiles` for `Packed` mode
+    - implement `PickedAutomatically` mode
+    - implement `excludeSoFiles`
+    - use `$project`, `$sdk`, `$ndk` prefixes
+    - allow absolute paths in `soFiles` for custom libs
+    - `$arch` variable for `soFiles`
+
 ## [1.14.1] - 2025-10-01
 ### Removed
 - DevContainerConfig: removed predefined editor `fontFamily` and `codeLensFontFamily`
