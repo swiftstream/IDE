@@ -141,7 +141,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
         // Phase 7: Copy .so files into Library project
         phase += 1
         print(`🔳 Phase ${phase}: Copy .so files`, LogLevel.Verbose)
-        AndroidLibraryProject.copySoFiles({
+        await AndroidLibraryProject.copySoFiles(stream, {
             projectPath: projectDirectory!,
             release: release,
             targets: targets,

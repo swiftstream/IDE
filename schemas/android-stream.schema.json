@@ -51,11 +51,47 @@
       "oneOf": [
         {
           "const": "Packed",
-          "description": "Automatically includes pre-packaged .so libraries from JitPack based on your imports."
+          "description": "Automatically includes pre-packaged .so runtime libraries from JitPack based on your imports. You can also provide a list of custom .so files to attach in the `soFiles` field by specifying the full name of the .so file (e.g., `libFoundation.so`) without the path, or by including a relative or absolute path for custom .so files. A relative path should begin with $project and contain $arch (e.g., `$project/CustomJNI/$arch/mycustom.so`), which indicates that the file is located in the project root directory."
+        },
+        {
+          "const": "PickedAutomatically",
+          "description": "Automatically includes .so runtime libraries from the SDK and NDK based on your imports and manual selections. Add manually selected files to the `soFiles` field by providing the full name of the .so file (e.g., `libFoundation.so`) without the path, or include a relative or absolute path for custom .so files. A relative path should begin with $project (and then contain $arch e.g., `$project/CustomJNI/$arch/mycustom.so`), or $sdk, or $ndk (e.g., `libswiftCore.so`), which indicates that the file is located in the project root directory. By default, the IDE searches for files in the project root, SDK, and NDK folders, in that order."
         },
         {
           "const": "PickedManually",
-          "description": "Requires you to manually specify which .so files to include in each scheme."
+          "description": "Requires you to manually specify which .so runtime libraries to include in each scheme. Files will be copied from the SDK and NDK folders. In the `soFiles` field, provide either the full name of the .so file (e.g., `libFoundation.so`) without the path, or include a relative or absolute path for custom .so files. A relative path should begin with $project (and then contain $arch e.g., `$project/CustomJNI/$arch/mycustom.so`), or $sdk, or $ndk (e.g., `libswiftCore.so`), which indicates that the file is located in the project root directory. By default, the IDE searches for files in the project root, SDK, and NDK folders, in that order."
+        }
+      ]
+    },
+    "excludeSoFiles": {
+      "description": "List of .so files to exclude in `PickedAutomatically` mode. Use an array for a global list or a dictionary for per-target mapping. Provide only the full name of the .so file (e.g., `libFoundation.so`) without the path.",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "soFiles": {
+      "description": "List of .so files to copy in `PickedManually` and `PickedAutomatically`, and even `Packed` modes. Use an array for a global list or a dictionary for per-target mapping. Provide either the full name of the .so file (e.g., `libFoundation.so`) without the path, or include a relative or absolute path for custom .so files. A relative path should begin with $project (and then contain $arch e.g., `$project/CustomJNI/$arch/mycustom.so`), or $sdk, or $ndk (e.g., `libswiftCore.so`), which indicates that the file is located in the project root directory. By default, the IDE searches for files in the project root, SDK, and NDK folders, in that order.",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
         }
       ]
     },
@@ -86,8 +122,24 @@
             "description": "Build configuration (Debug / Release)",
             "default": "Release"
           },
+          "excludeSoFiles": {
+            "description": "List of .so files to exclude in `PickedAutomatically` mode. Use an array for a global list or a dictionary for per-target mapping. Provide only the full name of the .so file (e.g., `libFoundation.so`) without the path.",
+            "oneOf": [
+              {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            ]
+          },
           "soFiles": {
-            "description": "Optional .so files, either a global list or per-target mapping",
+            "description": "List of .so files to copy in `PickedManually` and `PickedAutomatically` modes. Use an array for a global list or a dictionary for per-target mapping. Provide either the full name of the .so file (e.g., `libFoundation.so`) without the path, or include a relative or absolute path for custom .so files. A relative path should begin with $project (and then contain $arch e.g., `$project/CustomJNI/$arch/mycustom.so`), or $sdk, or $ndk (e.g., `libswiftCore.so`), which indicates that the file is located in the project root directory. By default, the IDE searches for files in the project root, SDK, and NDK folders, in that order.",
             "oneOf": [
               {
                 "type": "array",

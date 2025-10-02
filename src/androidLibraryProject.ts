@@ -7,6 +7,7 @@ import { AndroidStream, DroidBuildArch, droidBuildArchToSwiftBuildFolder } from 
 import { AndroidStreamConfig, PackageMode, Scheme, SoMode } from './androidStreamConfig'
 import { getToolchainsList } from './toolchain'
 import { DevContainerConfig } from './devContainerConfig'
+import { projectDirectory } from './extension'
 
 export class AndroidLibraryProject {
     static generateIfNeeded(options: {
@@ -140,7 +141,7 @@ export class AndroidLibraryProject {
         }
     }
 
-    static copySoFiles(options: {
+    static async copySoFiles(stream: AndroidStream, options: {
         projectPath: string,
         release: boolean,
         targets: string[],
@@ -148,11 +149,13 @@ export class AndroidLibraryProject {
         scheme: Scheme,
         streamConfig: AndroidStreamConfig
     }) {
+        if (options.archs.length == 0) return
+        const isLegacySDK = DevContainerConfig.checkIfLegacyAndroidSDK()
+        // PART 1: copy target .so files
         for (let a = 0; a < options.archs.length; a++) {
             const arch = options.archs[a]
             for (let i = 0; i < options.targets.length; i++) {
                 const target = options.targets[i]
-                // copy project .so files
                 const fromPath = path.join(droidBuildArchToSwiftBuildFolder({
                     mode: arch,
                     compileSDK: `${options.streamConfig.config.compileSDK}`
@@ -172,42 +175,321 @@ export class AndroidLibraryProject {
                     verbose: `📑 Copied ${target}/.../${arch}/lib${target}.so`,
                     unbearable: `📑 Copied ${toPath}`,
                 })
-                // copy swift .so files
-                if (options.streamConfig.config.soMode === SoMode.PickedManually) {
-                    const version = DevContainerConfig.swiftVersion()
-                    const toolchain = getToolchainsList().android.find((x) => x.version.major === version.major && x.version.minor === version.minor && x.version.patch === version.patch)!
-                    const androidSDKFolderName1 = toolchain.artifact_url.split('/').pop()!.replace(/\.tar\.gz$/, '')
-                    const sdkPath1 = path.join('/swift/sdks', androidSDKFolderName1)
-                    const androidSDKFolderName2 = fs.readdirSync(sdkPath1, { withFileTypes: true }).find(x => x.isDirectory() && x.name.startsWith('swift-') && x.name.endsWith('-sdk'))!.name
-                    const sdkPath2 = path.join(sdkPath1, androidSDKFolderName2)
-                    const androidSDKSysrootFolderName = fs.readdirSync(sdkPath2, { withFileTypes: true }).find(x => x.isDirectory() && x.name.startsWith('android-') && x.name.endsWith('-sysroot'))!.name
-                    const archFolder = () => {
-                        switch (arch) {
-                            case DroidBuildArch.Arm64: return 'aarch64-linux-android'
-                            case DroidBuildArch.ArmEabi: return 'arm-linux-androideabi'
-                            case DroidBuildArch.x86_64: return 'x86_64-linux-android'
+            }
+        }
+        // Put .so list for each target into this dictionary
+        let requiredSO: any = {}
+        if ([SoMode.PickedAutomatically].includes(options.streamConfig.config.soMode)) {
+            for (let i = 0; i < options.targets.length; i++) {
+                const target = options.targets[i]
+                const soPath = path.join(options.projectPath, 'Library', target.toLowerCase(), 'src', 'main', 'jniLibs', options.archs[0], `lib${target}.so`)
+                if (!fs.existsSync(soPath)) {
+                    throw new Error(`Target lib${target}.so not found.`)
+                }
+                const elfResult = await stream.readelf.neededSoList(soPath)
+                if (!elfResult.success) {
+                    throw elfResult.error ?? new Error(`Unable to extract dependencies from lib${target}.so`)
+                }
+                let soToAdd: string[] = []
+                function addSoFrom(array: string[]) {
+                    for (let a = 0; a < array.length; a++) {
+                        const item = array[a]
+                        if (!soToAdd.includes(item)) {
+                            soToAdd.push(item)
                         }
                     }
-                    const soFilesPath = path.join(sdkPath2, androidSDKSysrootFolderName, 'usr', 'lib', archFolder())
-                    let soFiles: string[] = []
-                    if (Array.isArray(options.scheme.soFiles)) {
-                        soFiles = options.scheme.soFiles
-                    } else if (typeof options.scheme.soFiles === 'object' && options.scheme.soFiles !== null) {
-                        soFiles = options.scheme.soFiles[target]
+                }
+                for (let s = 0; s < elfResult.list.length; s++) {
+                    const so = elfResult.list[s]
+                    if (isLegacySDK && AndroidLibraryProject.compressionLegacy.includes(so)) {
+                        addSoFrom(AndroidLibraryProject.compressionLegacy)
                     }
-                    for (let s = 0; s < soFiles.length; s++) {
-                        const soFile = soFiles[s]
-                        const fromPath = path.join(soFilesPath, soFile)
-                        const toPath = path.join(toFolder, soFile)
-                        fs.cpSync(fromPath, toPath, { force: true })
-                        print({
-                            verbose: `📑 Copied ${target}/.../${arch}/${soFile}`,
-                            unbearable: `📑 Copied ${toPath}`,
-                        })
+                    if (isLegacySDK) {
+                        if (AndroidLibraryProject.coreLegacy.includes(so)) {
+                            addSoFrom(AndroidLibraryProject.coreLegacy)
+                        }
+                    } else {
+                        if (AndroidLibraryProject.core.includes(so)) {
+                            addSoFrom(AndroidLibraryProject.core)
+                        }
+                    }
+                    if (isLegacySDK) {
+                        if (AndroidLibraryProject.foundationLegacy.includes(so)) {
+                            addSoFrom(AndroidLibraryProject.foundationLegacy)
+                        }
+                    } else {
+                        if (AndroidLibraryProject.foundation.includes(so)) {
+                            addSoFrom(AndroidLibraryProject.foundation)
+                        }
+                    }
+                    if (AndroidLibraryProject.foundationessentials.includes(so)) {
+                        addSoFrom(AndroidLibraryProject.foundationessentials)
+                    }
+                    if (AndroidLibraryProject.i18n.includes(so)) {
+                        addSoFrom(AndroidLibraryProject.i18n)
+                    }
+                    if (isLegacySDK) {
+                        if (AndroidLibraryProject.networkingLegacy.includes(so)) {
+                            addSoFrom(AndroidLibraryProject.networkingLegacy)
+                        }
+                    } else {
+                        if (AndroidLibraryProject.networking.includes(so)) {
+                            addSoFrom(AndroidLibraryProject.networking)
+                        }
+                    }
+                    if (AndroidLibraryProject.testing.includes(so)) {
+                        addSoFrom(AndroidLibraryProject.testing)
+                    }
+                    if (isLegacySDK) {
+                        if (AndroidLibraryProject.xmlLegacy.includes(so)) {
+                            addSoFrom(AndroidLibraryProject.xmlLegacy)
+                        }
+                    } else {
+                        if (AndroidLibraryProject.xml.includes(so)) {
+                            addSoFrom(AndroidLibraryProject.xml)
+                        }
+                    }
+                }
+                requiredSO[target] = soToAdd
+            }
+        }
+        // Fill `requiredSO` with targets if needed
+        for (let t = 0; t < options.targets.length; t++) {
+            const target = options.targets[t]
+            if (!requiredSO.hasOwnProperty(target)) {
+                requiredSO[target] = []
+            }
+        }
+        enum ProcessAction { Include, Exclude }
+        function proceesSoUsing(action: ProcessAction, soObject?: any) {
+            if (!soObject) return
+            function processArray(array: string[], target: string) {
+                for (let s = 0; s < array.length; s++) {
+                    let so = array[s]
+                    if (action === ProcessAction.Include) {
+                        if (!requiredSO[target].includes(so)) {
+                            requiredSO[target].push(so)
+                        }
+                    } else {
+                        if (requiredSO[target].includes(so)) {
+                            requiredSO[target].splice(requiredSO[target].indexOf(so), 1)
+                        }
+                    }
+                }
+            }
+            if (Array.isArray(soObject)) {
+                for (let t = 0; t < options.targets.length; t++) {
+                    const target = options.targets[t]
+                    processArray(soObject, target)
+                }
+            } else if (typeof soObject === 'object' && soObject !== null) {
+                for (let t = 0; t < options.targets.length; t++) {
+                    const target = options.targets[t]
+                    const array = soObject[target]
+                    if (array !== null && Array.isArray(array)) {
+                        processArray(array, target)
                     }
                 }
             }
         }
+        proceesSoUsing(ProcessAction.Exclude, options.streamConfig.config.excludeSoFiles)
+        proceesSoUsing(ProcessAction.Include, options.streamConfig.config.soFiles)
+        // PART 2: copy runtime .so files
+        for (let a = 0; a < options.archs.length; a++) {
+            const arch = options.archs[a]
+            for (let i = 0; i < options.targets.length; i++) {
+                const target = options.targets[i]
+                const toFolder = path.join(options.projectPath, 'Library', target.toLowerCase(), 'src', 'main', 'jniLibs', arch)
+                const sdkSOFilesPath = AndroidLibraryProject.sdkSOFilesPath(arch)
+                const ndkSOFilesPath = AndroidLibraryProject.ndkSOFilesPath(arch)
+                function copyRelativeSOItem(soItem: string) {
+                    if (!soItem.includes('$arch')) {
+                        print(`⚠️ Skipped copying ${soItem} because its path does not contain $arch`)
+                        return
+                    }
+                    const soFile = path.basename(soItem)
+                    const fromProjectPath = path.join(projectDirectory!, soItem.replace('$arch', arch).replace('$project/', ''))
+                    const toPath = path.join(toFolder, soFile)
+                    if (fs.existsSync(fromProjectPath)) {
+                        fs.cpSync(fromProjectPath, toPath, { force: true })
+                        print({
+                            verbose: `📑 Copied ${target}/.../${arch}/${soFile}`,
+                            unbearable: `📑 Copied from Project ${fromProjectPath} to ${toPath}`,
+                        })
+                    } else {
+                        print(`⚠️ Unable to copy '${soFile}': not found in the Project folder`, LogLevel.Normal)
+                        print(`   Tried: ${fromProjectPath}`, LogLevel.Unbearable)
+                    }
+                }
+                function copyAbsoluteSOItem(soItem: string) {
+                    if (!soItem.includes('$arch')) {
+                        print(`⚠️ Skipped copying ${soItem} because its path does not contain $arch`)
+                        return
+                    }
+                    const soFile = path.basename(soItem)
+                    const fromProjectPath = soItem.replace('$arch', arch)
+                    const toPath = path.join(toFolder, path.basename(soItem))
+                    if (fs.existsSync(fromProjectPath)) {
+                        fs.cpSync(fromProjectPath, toPath, { force: true })
+                        print({
+                            verbose: `📑 Copied ${target}/.../${arch}/${soFile}`,
+                            unbearable: `📑 Copied from ${fromProjectPath} to ${toPath}`,
+                        })
+                    } else {
+                        print(`⚠️ Unable to copy '${soFile}': not found in the Project folder`, LogLevel.Normal)
+                        print(`   Tried: ${fromProjectPath}`, LogLevel.Unbearable)
+                    }
+                }
+                function copySOFromSDK(soItem: string) {
+                    const soFile = path.basename(soItem)
+                    const fromSDKPath = path.join(sdkSOFilesPath, soItem.replace('$sdk/', ''))
+                    const toPath = path.join(toFolder, soFile)
+                    if (fs.existsSync(fromSDKPath)) {
+                        fs.cpSync(fromSDKPath, toPath, { force: true })
+                        print({
+                            verbose: `📑 Copied ${target}/.../${arch}/${soFile}`,
+                            unbearable: `📑 Copied from SDK ${fromSDKPath} to ${toPath}`,
+                        })
+                    } else {
+                        print(`⚠️ Unable to copy '${soFile}': not found in the SDK folder`, LogLevel.Normal)
+                        print(`   Tried: ${fromSDKPath}`, LogLevel.Unbearable)
+                    }
+                }
+                function copySOFromNDK(soItem: string) {
+                    const soFile = path.basename(soItem)
+                    const fromNDKPath = path.join(ndkSOFilesPath, soItem.replace('$ndk/', ''))
+                    const toPath = path.join(toFolder, soFile)
+                    if (fs.existsSync(fromNDKPath)) {
+                        fs.cpSync(fromNDKPath, toPath, { force: true })
+                        print({
+                            verbose: `📑 Copied ${target}/.../${arch}/${soFile}`,
+                            unbearable: `📑 Copied from NDK ${fromNDKPath} to ${toPath}`,
+                        })
+                    } else {
+                        print(`⚠️ Unable to copy '${soFile}': not found in the NDK folder`, LogLevel.Normal)
+                        print(`   Tried: ${fromNDKPath}`, LogLevel.Unbearable)
+                    }
+                }
+                // in `Packed` mode we have to take only custom .so files
+                if ([SoMode.Packed].includes(options.streamConfig.config.soMode)) {
+                    // let's filter out .so
+                    const filteredSO = requiredSO[target].filter(x => x.startsWith('/') || x.startsWith('$project/'))
+                    for (let s = 0; s < filteredSO.length; s++) {
+                        const soItem = filteredSO[s]
+                        // relative to project
+                        if (soItem.startsWith('$project/')) {
+                            copyRelativeSOItem(soItem)
+                        }
+                        // absolute path
+                        else {
+                            copyAbsoluteSOItem(soItem)
+                        }
+                    }
+                }
+                // in `Picked` modes we have to take all
+                else if ([SoMode.PickedAutomatically, SoMode.PickedManually].includes(options.streamConfig.config.soMode)) {
+                    let soItems: string[] = requiredSO[target]
+                    proceesSoUsing(ProcessAction.Exclude, options.scheme.excludeSoFiles)
+                    proceesSoUsing(ProcessAction.Include, options.scheme.soFiles)
+                    for (let s = 0; s < soItems.length; s++) {
+                        const soItem = soItems[s]
+                        // relative to project
+                        if (soItem.startsWith('$project/')) {
+                            copyRelativeSOItem(soItem)
+                        }
+                        // absolute path
+                        else if (soItem.startsWith('/')) {
+                            copyAbsoluteSOItem(soItem)
+                        }
+                        // exactly from SDK
+                        else if (soItem.startsWith('$sdk/')) {
+                            copySOFromSDK(soItem)
+                        }
+                        // exactly from NDK
+                        else if (soItem.startsWith('$ndk/')) {
+                            copySOFromNDK(soItem)
+                        }
+                        // search in project, then in sdk, then in ndk
+                        else {
+                            const soFile = path.basename(soItem)
+                            const fromProjectPath = path.join(projectDirectory!, soItem.replace('$arch', arch))
+                            const fromSDKPath = path.join(sdkSOFilesPath, soItem)
+                            const fromNDKPath = path.join(ndkSOFilesPath, soItem)
+                            const toPath = path.join(toFolder, soFile)
+                            if (fs.existsSync(fromProjectPath)) {
+                                if (soItem.includes('$arch')) {
+                                    fs.cpSync(fromProjectPath, toPath, { force: true })
+                                    print({
+                                        verbose: `📑 Copied ${target}/.../${arch}/${soFile}`,
+                                        unbearable: `📑 Copied from Project ${fromProjectPath} to ${toPath}`,
+                                    })
+                                } else {
+                                    print(`⚠️ Skipped copying ${soItem} because its path does not contain $arch`)
+                                }
+                            } else if (fs.existsSync(fromSDKPath)) {
+                                fs.cpSync(fromSDKPath, toPath, { force: true })
+                                print({
+                                    verbose: `📑 Copied ${target}/.../${arch}/${soFile}`,
+                                    unbearable: `📑 Copied from SDK ${fromSDKPath} to ${toPath}`,
+                                })
+                            } else if (fs.existsSync(fromNDKPath)) {
+                                fs.cpSync(fromNDKPath, toPath, { force: true })
+                                print({
+                                    verbose: `📑 Copied ${target}/.../${arch}/${soFile}`,
+                                    unbearable: `📑 Copied from SDK ${fromNDKPath} to ${toPath}`,
+                                })
+                            } else {
+                                print(`⚠️ Unable to copy '${soFile}': not found in either project root or the SDK or the NDK folders`, LogLevel.Normal)
+                                print(`   Tried project: ${fromProjectPath}`, LogLevel.Unbearable)
+                                print(`   Tried SDK: ${fromSDKPath}`, LogLevel.Unbearable)
+                                print(`   Tried NDK: ${fromNDKPath}`, LogLevel.Unbearable)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static sdkSOFilesPath(arch: DroidBuildArch): string {
+        const version = DevContainerConfig.swiftVersion()
+        const toolchain = getToolchainsList().android.find((x) => x.version.major === version.major && x.version.minor === version.minor && x.version.patch === version.patch)!
+        const androidSDKFolderName1 = toolchain.artifact_url.split('/').pop()!.replace(/\.tar\.gz$/, '')
+        const sdkPath1 = path.join('/swift/sdks', androidSDKFolderName1)
+        if (DevContainerConfig.checkIfLegacyAndroidSDK()) {
+            const androidSDKFolderName2 = fs.readdirSync(sdkPath1, { withFileTypes: true }).find(x => x.isDirectory() && x.name.startsWith('swift-') && x.name.endsWith('-sdk'))!.name
+            const sdkPath2 = path.join(sdkPath1, androidSDKFolderName2)
+            const androidSDKSysrootFolderName = fs.readdirSync(sdkPath2, { withFileTypes: true }).find(x => x.isDirectory() && x.name.startsWith('android-') && x.name.endsWith('-sysroot'))!.name
+            const legacySDKArchFolder = () => {
+                switch (arch) {
+                    case DroidBuildArch.Arm64: return 'aarch64-linux-android'
+                    case DroidBuildArch.ArmEabi: return 'arm-linux-androideabi'
+                    case DroidBuildArch.x86_64: return 'x86_64-linux-android'
+                }
+            }
+            return path.join(sdkPath2, androidSDKSysrootFolderName, 'usr', 'lib', legacySDKArchFolder())
+        } else {
+            const sdkArchFolder = () => {
+                switch (arch) {
+                    case DroidBuildArch.Arm64: return 'swift-aarch64'
+                    case DroidBuildArch.ArmEabi: return 'swift-armv7'
+                    case DroidBuildArch.x86_64: return 'swift-x86_64'
+                }
+            }
+            return path.join(sdkPath1, 'swift-android', 'swift-resources', 'usr', 'lib', sdkArchFolder(), 'android')
+        }
+    }
+
+    private static ndkSOFilesPath(arch: DroidBuildArch): string {
+        const ndkVersion = DevContainerConfig.getNDKVersion()
+        const ndkArchFolderPrefix = () => {
+            switch (arch) {
+                case DroidBuildArch.Arm64: return 'aarch64-linux-android'
+                case DroidBuildArch.ArmEabi: return 'arm-linux-androideabi'
+                case DroidBuildArch.x86_64: return 'x86_64-linux-android'
+            }
+        }
+        return path.join('/opt', 'android', 'ndk', ndkVersion, 'toolchains', 'llvm', 'prebuilt', 'linux-x86_64', 'sysroot', 'usr', 'lib', ndkArchFolderPrefix())
     }
 
     static proceedTargets(options: {
@@ -430,6 +712,8 @@ export class AndroidLibraryProject {
         swiftVersion: string,
         streamConfig: AndroidStreamConfig
     }) {
+        const begin = '// managed by swiftstreamide: so-dependencies-begin'
+        const end = '// managed by swiftstreamide: so-dependencies-end'
         for (let i = 0; i < options.targets.length; i++) {
             const target = options.targets[i]
             const soPath = path.join(options.projectPath, 'Library', target.toLowerCase(), 'src', 'main', 'jniLibs', options.arch, `lib${target}.so`)
@@ -437,14 +721,17 @@ export class AndroidLibraryProject {
             if (!elfResult.success) {
                 throw elfResult.error ?? new Error(`Unable to extract dependencies from lib${target}.so`)
             }
-            const begin = '// managed by swiftstreamide: so-dependencies-begin'
-            const end = '// managed by swiftstreamide: so-dependencies-end'
             const buildGradlePath = path.join(options.projectPath, 'Library', target.toLowerCase(), 'build.gradle.kts')
             // Cleanup file from any old records
             AndroidLibraryProject.removeLinesWithPattern(buildGradlePath, 'com.github.swifdroid.runtime-libs:')
             const buildGradleFile = fs.readFileSync(buildGradlePath, 'utf8')
-            if (!buildGradleFile.includes(begin) || !buildGradleFile.includes(end)) {
-                print(`⚠️ Skipped setting dependencies for lib${target}.so since special tag is missing`, LogLevel.Detailed)
+            if (options.streamConfig.config.soMode === SoMode.Packed) {
+                if (!buildGradleFile.includes(begin) || !buildGradleFile.includes(end)) {
+                    print(`⚠️ Skipped setting dependencies for lib${target}.so since special tag is missing`, LogLevel.Detailed)
+                    continue
+                }
+            } else {
+                print(`Skipped setting so-dependencies for lib${target}.so since mode is not 'Packed'`, LogLevel.Unbearable)
                 continue
             }
             const isLegacySDK = DevContainerConfig.checkIfLegacyAndroidSDK()
@@ -517,6 +804,49 @@ export class AndroidLibraryProject {
     static compressionLegacy: string[] = [
         'liblzma.so',
         'libz.so'
+    ]
+    static coreLegacy: string[] = [
+        'libandroid-execinfo.so',
+        'libandroid-spawn.so',
+        'libBlocksRuntime.so',
+        'libc++_shared.so',
+        'libcharset.so',
+        'libdispatch.so',
+        'libswift_Builtin_float.so',
+        'libswift_Concurrency.so',
+        'libswift_Differentiation.so',
+        'libswift_math.so',
+        'libswift_RegexParser.so',
+        'libswift_StringProcessing.so',
+        'libswift_Volatile.so',
+        'libswiftAndroid.so',
+        'libswiftCore.so',
+        'libswiftDispatch.so',
+        'libswiftDistributed.so',
+        'libswiftObservation.so',
+        'libswiftRegexBuilder.so',
+        'libswiftSwiftOnoneSupport.so',
+        'libswiftSynchronization.so'
+    ]
+    static core: string[] = [
+        'libBlocksRuntime.so',
+        'libc++_shared.so',
+        'libdispatch.so',
+        'libswift_Builtin_float.so',
+        'libswift_Concurrency.so',
+        'libswift_Differentiation.so',
+        'libswift_math.so',
+        'libswift_RegexParser.so',
+        'libswift_StringProcessing.so',
+        'libswift_Volatile.so',
+        'libswiftAndroid.so',
+        'libswiftCore.so',
+        'libswiftDispatch.so',
+        'libswiftDistributed.so',
+        'libswiftObservation.so',
+        'libswiftRegexBuilder.so',
+        'libswiftSwiftOnoneSupport.so',
+        'libswiftSynchronization.so'
     ]
     static foundationLegacy: string[] = [
         'lib_FoundationICU.so',

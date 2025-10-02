@@ -392,6 +392,7 @@ export interface Scheme {
     title: string
     swiftTargets: string[]
     buildConfiguration: SchemeBuildConfiguration
+    excludeSoFiles?: string[] | Record<string, string[]>
     soFiles?: string[] | Record<string, string[]>
     swiftArgs?: string[] | Record<string, string[]>
 }
@@ -408,6 +409,7 @@ export enum PackageMode {
 
 export enum SoMode {
     Packed = 'Packed', // automatic from jitpack based on imports
+    PickedAutomatically = 'PickedAutomatically', // automatic locally based on imports and manual picks
     PickedManually = 'PickedManually' // manually picked from the list
 }
 
@@ -416,6 +418,8 @@ export interface Config {
     packageMode: PackageMode
     packageName: string
     soMode: SoMode
+    excludeSoFiles?: string[] | Record<string, string[]>
+    soFiles?: string[] | Record<string, string[]>
     minSDK: number
     compileSDK: number
     javaVersion: number
