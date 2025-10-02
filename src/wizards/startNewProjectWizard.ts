@@ -65,7 +65,7 @@ export async function startNewProjectWizard() {
 			case 'selectFolder':
 				const folderPath = (await selectFolder('Please select a folder for the project', 'Select'))?.fsPath
 				if (folderPath) {
-					webViewPanel?.webview.postMessage({ type: event.payload.type, data: { path: folderPath } })
+					webViewPanel?.webview.postMessage({ type: event.payload.type, data: { path: osPath.join(folderPath, event.payload.name), basename: osPath.basename(folderPath) } })
 				}
 				break
 		}

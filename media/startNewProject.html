@@ -66,6 +66,9 @@
                 break
             case 'setProjectFolder':
                 folder = payload.path
+                if (nameInput.value.length == 0) {
+                    nameInput.value = payload.basename
+                }
                 updateFolderLabel(folder)
                 break
             case 'creatingFailed':
@@ -117,13 +120,15 @@
             if (folder == userHomePath) {
                 updateFolderLabel(userHomePath + slash + name.replaceAll(' ', ''))
             } else {
-                updateFolderLabel(folder)
+                let folderItems = folder.split(slash).slice(0, -1)
+                folderItems.push(name)
+                updateFolderLabel(folderItems.join(slash))
             }
             checkValues()
         })
         function selectFolder() {
             if (nameInput.disabled) return
-            vscode.postMessage({ command: 'selectFolder', payload: { type: 'setProjectFolder' } })
+            vscode.postMessage({ command: 'selectFolder', payload: { name: nameInput.value, type: 'setProjectFolder' } })
         }
         folderLabel.addEventListener('click', selectFolder)
         folderButton.addEventListener('click', selectFolder)
