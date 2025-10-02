@@ -47,6 +47,11 @@ export class DevContainerConfig {
         return swiftVersion.major == 6 && swiftVersion.minor == 2 && swiftVersion.patch == 0
     }
 
+    public static getNDKVersion(): string {
+        const config = new DevContainerConfig()
+        return config.config.containerEnv.S_NDK_VERSION
+    }
+
     public static getEmbeddedBranch(): EmbeddedBranch {
         const config = new DevContainerConfig()
         if (!config.checkIfContainerEnvKeyExists('S_EMBEDDED_BRANCH')) return EmbeddedBranch.Unknown
