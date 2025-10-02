@@ -1,10 +1,8 @@
 # Swift Stream IDE
 
-**Swift Stream** is a powerful **IDE** for VS Code that enhances your ability to work with Swift projects beyond the traditional iOS/macOS ecosystem.
-
 Are you tired of dealing with broken projects over time, struggling to set up Swift with its many platform-specific nuances, or simply curious about trying Swift on **non-Apple platforms**? This extension is here to help!
 
-For the best experience, we recommend using it with the **[Xcode Theme](https://marketplace.visualstudio.com/items?itemName=MateoCERQUETELLA.xcode-12-theme)** extension.
+**Swift Stream** is a powerful **IDE** for VS Code that enhances your ability to work with Swift projects beyond the traditional iOS/macOS ecosystem.
 
 ## 🐳 Containerized Swift Development
 
