@@ -14,9 +14,9 @@ android {
 
     packaging {
         jniLibs {
-            keepDebugSymbols.add("*/arm64-v8a/lib{{targetName}}.so")
-            keepDebugSymbols.add("*/armeabi-v7a/lib{{targetName}}.so")
-            keepDebugSymbols.add("*/x86_64/lib{{targetName}}.so")
+            keepDebugSymbols.add("*/arm64-v8a/*.so")
+            keepDebugSymbols.add("*/armeabi-v7a/*.so")
+            keepDebugSymbols.add("*/x86_64/*.so")
         }
     }
 
