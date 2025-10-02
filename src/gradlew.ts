@@ -42,9 +42,18 @@ export class GradleW {
         reveal?: boolean
     }): Promise<boolean> {
         if (this.isAssembling) return false
+        const env = await this.stream.bash.getShellEnv()
+        // Filter out problematic variables and create export statements
+        const safeEnvEntries = Object.entries(env)
+        .filter(([key, value]) => key && value && !key.includes('LESS') && !key.includes('VSCODE_NLS_CONFIG'))
+        .map(([key, value]) => `export ${key}='${value?.toString().replace(/'/g, "'\\''")}'`)
+        .join('\n')
+        const tempEnvFile = `/tmp/gradle_env_${Date.now()}.sh`
         this.assembleTask = new GradleTaskProvider(
             'gradlew assemble',
-            `cd ${this.cwd} && ${this.binPath} assemble${options.configuration}`,
+            `cat > '${tempEnvFile}' << 'EOF'\n${safeEnvEntries}\nEOF\n` +
+            `. '${tempEnvFile}' && cd '${this.cwd.replace(/'/g, "'\\''")}'` +
+            ` && ${this.binPath} assemble${options.configuration} && rm '${tempEnvFile}'`,
             {
                 onStart: () => {
                     this.isAssembling = true
