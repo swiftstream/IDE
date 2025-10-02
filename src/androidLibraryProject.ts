@@ -416,6 +416,13 @@ export class AndroidLibraryProject {
         fs.writeFileSync(buildGradlePath, newContent, 'utf8')
     }
 
+    private static removeLinesWithPattern(filePath: string, pattern: string) {
+        const content = fs.readFileSync(filePath, 'utf-8')
+        const lines = content.split('\n')
+        const filteredLines = lines.filter(line => !line.includes(pattern))
+        fs.writeFileSync(filePath, filteredLines.join('\n'))
+    }
+
     static async proceedSoDependencies(stream: AndroidStream, options: {
         projectPath: string,
         targets: string[],
@@ -433,6 +440,8 @@ export class AndroidLibraryProject {
             const begin = '// managed by swiftstreamide: so-dependencies-begin'
             const end = '// managed by swiftstreamide: so-dependencies-end'
             const buildGradlePath = path.join(options.projectPath, 'Library', target.toLowerCase(), 'build.gradle.kts')
+            // Cleanup file from any old records
+            AndroidLibraryProject.removeLinesWithPattern(buildGradlePath, 'com.github.swifdroid.runtime-libs:')
             const buildGradleFile = fs.readFileSync(buildGradlePath, 'utf8')
             if (!buildGradleFile.includes(begin) || !buildGradleFile.includes(end)) {
                 print(`⚠️ Skipped setting dependencies for lib${target}.so since special tag is missing`, LogLevel.Detailed)
@@ -441,6 +450,7 @@ export class AndroidLibraryProject {
             const isLegacySDK = DevContainerConfig.checkIfLegacyAndroidSDK()
             let dependencies: string[] = []
             if (options.streamConfig.config.soMode === SoMode.Packed) {
+                dependencies.push('core')
                 for (let s = 0; s < elfResult.list.length; s++) {
                     const so = elfResult.list[s]
                     if (isLegacySDK && AndroidLibraryProject.compressionLegacy.includes(so) && !dependencies.includes('compression')) {
