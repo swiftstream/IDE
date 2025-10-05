@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { commands, ConfigurationChangeEvent, FileDeleteEvent, FileRenameEvent, TextDocument, window, workspace } from 'vscode'
-import { isBuildingDebug, isFlashing, isHotRebuildEnabled, isResolvingPackages, LogLevel, print, Stream } from '../stream'
+import { isBuildingDebug, isFlashing, isHotRebuildEnabled, isResolvingPackages, isUpdatingPackages, LogLevel, print, Stream } from '../stream'
 import { Dependency, SideTreeItem } from '../../sidebarTreeView'
 import { ContextKey, extensionContext, isInContainer, projectDirectory, sidebarTreeView } from '../../extension'
 import { DevContainerConfig, EmbeddedBranch } from '../../devContainerConfig'
@@ -307,6 +307,11 @@ export class EmbeddedStream extends Stream {
                 id: SideTreeItem.ResolvePackages,
                 label: isResolvingPackages ? 'Resolving Packages' : isResolvingPackages ? 'Resolved Packages' : 'Resolve Packages',
                 icon: isResolvingPackages ? 'sync~spin::charts.yellow' : isResolvingPackages ? 'check::charts.green' : 'clone::charts.yellow'
+            }))
+            items.push(new Dependency({
+                id: SideTreeItem.UpdatePackages,
+                label: isUpdatingPackages ? 'Updating Packages' : isUpdatingPackages ? 'Updated Packages' : 'Update Packages',
+                icon: isUpdatingPackages ? 'sync~spin::charts.yellow' : isUpdatingPackages ? 'check::charts.green' : 'package::charts.yellow'
             }))
         }
         return items

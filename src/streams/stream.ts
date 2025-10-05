@@ -22,6 +22,7 @@ import { mountNewItemCommand } from '../commands/mountNewItem'
 import { sshHostInstructions } from '../commands/sshHostInstructions'
 import { rebuildContainer } from '../commands/rebuildContainer'
 import { EmbeddedBranch } from '../devContainerConfig'
+import { updatePackagesCommand } from '../commands/updatePackages'
 
 export var isTestable = false
 export var isBuildingDebug = false
@@ -35,6 +36,7 @@ export var isClearingCache = false
 export var isClearedCache = false
 export var isRestartingLSP = false
 export var isResolvingPackages = false
+export var isUpdatingPackages = false
 export var isRestartedLSP = false
 
 export class Stream {
@@ -135,6 +137,7 @@ export class Stream {
 		extensionContext.subscriptions.push(commands.registerCommand(SideTreeItem.ClearCaches, async () => await clearCachesCommand() ))
 		extensionContext.subscriptions.push(commands.registerCommand(SideTreeItem.RestartLSP, async () => await restartLSPCommand() ))
 		extensionContext.subscriptions.push(commands.registerCommand(SideTreeItem.ResolvePackages, async () => await resolvePackagesCommand() ))
+		extensionContext.subscriptions.push(commands.registerCommand(SideTreeItem.UpdatePackages, async () => await updatePackagesCommand() ))
         extensionContext.subscriptions.push(commands.registerCommand(SideTreeItem.Toolchain, toolchainCommand))
         extensionContext.subscriptions.push(commands.registerCommand(SideTreeItem.LoggingLevel, loggingLevelCommand))
 		extensionContext.subscriptions.push(commands.registerCommand(SideTreeItem.ClearLogOnRebuild, clearLogOnRebuildCommand))
@@ -765,6 +768,11 @@ export class Stream {
 
 	setResolvingPackages(active: boolean = true) {
 		isResolvingPackages = active
+		sidebarTreeView?.refresh()
+	}
+
+	setUpdatingPackages(active: boolean = true) {
+		isUpdatingPackages = active
 		sidebarTreeView?.refresh()
 	}
 

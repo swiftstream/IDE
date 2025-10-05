@@ -320,6 +320,49 @@ export class Swift {
         }
     }
 
+    async packageUpdate(options: {
+        type: SwiftBuildType,
+        abortHandler: AbortHandler,
+        progressHandler?: (p: string) => void
+    }): Promise<void> {
+        const args: string[] = ['package', 'update', "--build-path", options.type == SwiftBuildType.Native ? './.build' : `./.build/.${options.type}`]
+        if (!fs.existsSync(`${projectDirectory}/Package.swift`)) {
+            throw `No Package.swift file in the project directory`
+        }
+        var env = process.env
+        env.SWIFT_MODE = `${options.type}`.toUpperCase()
+        try {
+            const result = await this.stream.bash.execute({
+                path: this.stream.toolchain.swiftPath,
+                description: `update dependencies for ${options.type}`,
+                cwd: projectDirectory,
+                env: env,
+                abortHandler: options.abortHandler,
+                processInstanceHandler: (process) => {
+                    options.abortHandler.addProcess(process)
+                    if (options.abortHandler.isCancelled) return
+                    if (!options.progressHandler) return
+                    process.stderr.on('data', function(msg) {
+                        if (options.abortHandler.isCancelled) return
+                        const m = msg.toString()
+                        if (m.startsWith('[')) {
+                            options.progressHandler!(m.split(']')[0].replace('[', ''))
+                        }
+                    })
+                }
+            }, args)
+            if (result.code != 0) {
+                if (result.stderr.length > 0) {
+                    console.error({packageUpdate: result.stderr})
+                }
+                throw `Unable to update swift packages for ${options.type}`
+            }
+        } catch (error: any) {
+            print(`error: ${isString(error) ? error : JSON.stringify(error)}`, LogLevel.Normal, true)
+            throw `Unable to update swift packages for ${options.type}`
+        }
+    }
+
     async version(): Promise<string | undefined> {
         const args: string[] = ['--version']
         try {

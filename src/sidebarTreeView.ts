@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { env } from 'process'
 import { TreeDataProvider, Event, EventEmitter, TreeItem, TreeItemCollapsibleState, ThemeIcon, ThemeColor, Command, Disposable, Uri, workspace, commands, TreeViewExpansionEvent, window } from 'vscode'
-import { isBuildingDebug, isBuildingRelease, isHotRebuildEnabled, isClearingCache, isClearedCache, currentLoggingLevel, isTesting, isTestable, isRestartingLSP, isRestartedLSP, isClearLogBeforeBuildEnabled, isResolvingPackages } from './streams/stream'
+import { isBuildingDebug, isBuildingRelease, isHotRebuildEnabled, isClearingCache, isClearedCache, currentLoggingLevel, isTesting, isTestable, isRestartingLSP, isRestartedLSP, isClearLogBeforeBuildEnabled, isResolvingPackages, isUpdatingPackages } from './streams/stream'
 import { extensionContext, ExtensionStream, extensionStream, isInContainer, currentStream, embeddedStream, androidStream } from './extension'
 import { openDocumentInEditorOnLine } from './helpers/openDocumentInEditor'
 import { isCIS } from './helpers/language'
@@ -522,6 +522,13 @@ export class SidebarTreeView implements TreeDataProvider<Dependency> {
 						icon: isResolvingPackages ? 'sync~spin::charts.yellow' : isResolvingPackages ? 'check::charts.green' : 'clone::charts.yellow'
 					}))
 				}
+				if (extensionStream !== ExtensionStream.Embedded) {
+					items.push(new Dependency({
+						id: SideTreeItem.UpdatePackages,
+						label: isUpdatingPackages ? 'Updating Packages' : isUpdatingPackages ? 'Updated Packages' : 'Update Packages',
+						icon: isUpdatingPackages ? 'sync~spin::charts.yellow' : isUpdatingPackages ? 'check::charts.green' : 'package::charts.yellow'
+					}))
+				}
 				items.push(...(await currentStream.maintenanceItems()))
 				break
 			case SideTreeItem.Settings:
@@ -794,6 +801,7 @@ export enum SideTreeItem {
 		ClearCaches = 'ClearCaches',
 		RestartLSP = 'RestartLSP',
 		ResolvePackages = 'ResolvePackages',
+		UpdatePackages = 'UpdatePackages',
 		RecompileApp = 'RecompileApp',
 		RecompileService = 'RecompileService',
 		RecompileJS = 'RecompileJS',
