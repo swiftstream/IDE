@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.15.1] - 2025-10-10
+### Added
+- Sidebar: implemented `Update Packages` action
+### Changed
+- Web-dev container: changed Dockerfile to copy `wasm-strip` and `wasm-opt` binaries for `amd64` and `arm64` separately, based on build argument `TARGETARCH`
+- Nginx feature: fixed the script to support current Ubuntu version
 ## [1.15.0] - 2025-10-03
 ### Changed
 - GradleW: use shell `env` in `assemble` to fix cold start issue
