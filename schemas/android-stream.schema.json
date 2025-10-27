@@ -31,13 +31,13 @@
       "type": "integer",
       "description": "Minimum Android SDK version",
       "minimum": 28,
-      "maximum": 36
+      "maximum": 35
     },
     "compileSDK": {
       "type": "integer",
       "description": "Target Android SDK version",
       "minimum": 28,
-      "maximum": 36
+      "maximum": 35
     },
     "javaVersion": {
       "type": "integer",
