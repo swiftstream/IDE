@@ -1,5 +1,7 @@
 # Changelog
-
+## [1.15.2] - 2025-10-27
+### Changed
+- Android stream: changed supported API range to `28-35`
 ## [1.15.1] - 2025-10-10
 ### Added
 - Sidebar: implemented `Update Packages` action
