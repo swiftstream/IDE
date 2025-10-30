@@ -24,7 +24,11 @@ export async function copyFile(
 }
 
 export function readFile(sourcePath: string): string {
-    return fs.readFileSync(Uri.file(extensionContext.asAbsolutePath(sourcePath)).path, 'utf8')
+    if (isWin) {
+        return fs.readFileSync(Uri.file(extensionContext.asAbsolutePath(sourcePath)).fsPath, 'utf8')
+    } else {
+        return fs.readFileSync(Uri.file(extensionContext.asAbsolutePath(sourcePath)).path, 'utf8')
+    }
 }
 
 export function isFolder(path: string) {
