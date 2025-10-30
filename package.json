@@ -34,7 +34,6 @@
     "onStartupFinished",
     "workspaceContains:Package.swift"
   ],
-  "extensionDependencies": ["ms-vscode-remote.remote-containers"],
   "main": "./dist/extension.js",
   "contributes": {
     "jsonValidation": [
