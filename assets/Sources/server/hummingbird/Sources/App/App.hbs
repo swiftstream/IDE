@@ -4,8 +4,10 @@ import Logging
 
 @main
 struct AppCommand: AsyncParsableCommand, AppArguments {
+    // 0.0.0.0 is required for testing in devcontainer
+    // change to 127.0.0.1 for production
     @Option(name: .shortAndLong)
-    var hostname: String = "127.0.0.1"
+    var hostname: String = "0.0.0.0"
 
     @Option(name: .shortAndLong)
     var port: Int = 8080
