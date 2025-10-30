@@ -28,7 +28,7 @@ export class Swift {
     
     async startRunTask(options: {
         release: boolean,
-        target: string,
+        pathToBinary: string,
         args: string[]
     }): Promise<{ pid: number } | undefined> {
         if (this.runTaskProvider) {
@@ -1230,10 +1230,10 @@ class SwiftRunTaskProvider implements TaskProvider {
     
     constructor(options: {
         release: boolean,
-        target: string,
+        pathToBinary: string,
         args: string[]
     }) {
-        this.command = `${path.join(projectDirectory!, '.build', options.release ? 'release' : 'debug', options.target)} ${options.args.join(' ')}`
+        this.command = `${options.pathToBinary} ${options.args.join(' ')}`
         this.release = options.release
         this.task = new Task(
             { type: SwiftRunTaskProvider.SwiftRunType },

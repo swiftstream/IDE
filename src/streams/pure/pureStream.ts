@@ -315,7 +315,11 @@ export class PureStream extends Stream {
         release: boolean,
         target: string
     }): boolean {
-        return fs.existsSync(path.join(projectDirectory!, '.build', options.release ? 'release' : 'debug', options.target))
+        if (options.release) {
+            return this.isReleaseBuilt(options.target, releaseBuildMode)
+        } else {
+            return this.isDebugBuilt(options.target, debugBuildMode)
+        }
     }
 
     async checkBinaryAndBuildIfNeeded(options: {
@@ -329,7 +333,11 @@ export class PureStream extends Stream {
                 case 'Yes':
                     this.isAwaitingBuild = true
                     sidebarTreeView?.refresh()
-                    await this.buildDebug()
+                    if (options.release) {
+                        await this.buildRelease()
+                    } else {
+                        await this.buildDebug()
+                    }
                     this.isAwaitingBuild = false
                     sidebarTreeView?.refresh()
                     return true
@@ -400,9 +408,14 @@ export class PureStream extends Stream {
         if (!selectedTarget)
             throw `Please select Swift target to run`
         if (await this.checkBinaryAndBuildIfNeeded({ release: options.release, target: selectedTarget }) === false) return
+        const pathToBinary = pathToCompiledBinary({
+            target: selectedTarget,
+            mode: pureBuildModeToSwiftBuildMode(options.release ? releaseBuildMode : debugBuildMode),
+            release: options.release
+        })
         const runningTask = await this.swift.startRunTask({
             release: options.release,
-            target: selectedTarget,
+            pathToBinary: pathToBinary,
             args: []
         })
         if (options.release) {
