@@ -549,7 +549,8 @@ export class SidebarTreeView implements TreeDataProvider<Dependency> {
 					id: SideTreeItem.AdvancedSettings,
 					label: 'Advanced',
 					state: this.expandState(SideTreeItem.AdvancedSettings),
-					icon: 'tools'
+					icon: 'tools',
+					skipCommand: true
 				}))
 				break
 			case SideTreeItem.AdvancedSettings:
