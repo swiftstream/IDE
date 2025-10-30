@@ -1,4 +1,7 @@
 # Changelog
+## [1.15.6] - 2025-10-30
+### Removed
+- Removed DevContainer extension from `extensionDependencies`
 ## [1.15.5] - 2025-10-30
 ### Added
 - Add DevContainer extension in `extensionDependencies`
