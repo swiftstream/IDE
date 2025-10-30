@@ -1,4 +1,7 @@
 # Changelog
+## [1.15.3] - 2025-10-30
+### Changed
+- Fix `Unable to create project: ENOENT` on Windows
 ## [1.15.2] - 2025-10-27
 ### Changed
 - Android stream: changed supported API range to `28-35`
