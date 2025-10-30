@@ -1,4 +1,8 @@
 # Changelog
+## [1.15.5] - 2025-10-30
+### Added
+- Add DevContainer extension in `extensionDependencies`
+## [1.15.4] - 2025-10-30
 ## [1.15.3] - 2025-10-30
 ### Changed
 - Fix `Unable to create project: ENOENT` on Windows
