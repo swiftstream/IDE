@@ -1,4 +1,8 @@
 # Changelog
+## [1.15.8] - 2025-10-31
+### Added
+- Server: use `0.0.0.0` by default as it is required for port forwarding in devcontainer. It has to be set back to `127.0.0.1` for production in Hummingbird, while in Vapor everything works fine since it is configured in the local `.env` file only.
+- Server: add default `.env` file
 ## [1.15.7] - 2025-10-30
 ### Changed
 - Server: upgrade Vapor template
