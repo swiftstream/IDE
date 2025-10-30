@@ -1,4 +1,9 @@
 # Changelog
+## [1.15.7] - 2025-10-30
+### Changed
+- Server: upgrade Vapor template
+- Server: fix building logic for `Run` command
+- Sidebar: set `skipCommand` on `AdvancedSettings`
 ## [1.15.6] - 2025-10-30
 ### Removed
 - Removed DevContainer extension from `extensionDependencies`
