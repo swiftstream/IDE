@@ -500,7 +500,9 @@ async function createNewProjectFiles(
 					config.transaction((c) => c.addOrChangePort(`${availablePort}`, `${innerServerPort}`))
 				})()
 				// Copy .gitignore
-				await copySourceFile(osPath.join(serverType, '.gitignore'), '.gitignore')
+				await copySourceFile(osPath.join(serverType, '_gitignore'), '.gitignore')
+				// Copy .env
+				await copySourceFile(osPath.join(serverType, '_env'), '.env')
 				switch (serverType) {
 					case 'vapor':
 						await (async function () {
