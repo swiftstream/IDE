@@ -38,7 +38,7 @@ export function pureDebugConfig(options: {
 }): any {
     return {
         name: `Debugging ${options.target}`,
-        type: 'lldb',
+        type: 'lldb-dap',
         request: 'launch',
         program: '${workspaceFolder:' + `${path.basename(projectDirectory ?? '')}` + `}/.build/debug/${options.target}`,
         args: options.args,
@@ -52,8 +52,9 @@ export function pureAttachDebuggerConfig(options: {
 }): any {
     return {
         name: `Debugging ${options.target}`,
-        type: 'lldb',
+        type: 'lldb-dap',
         request: 'attach',
+        program: '${workspaceFolder:' + `${path.basename(projectDirectory ?? '')}` + `}/.build/debug/${options.target}`,
         pid: options.pid
     }
 }
