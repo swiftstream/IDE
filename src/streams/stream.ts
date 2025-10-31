@@ -488,10 +488,16 @@ export class Stream {
 	async globalKeyStop() {
 		await commands.executeCommand('workbench.action.debug.stop')
 		await this.abortBuildingDebug()
+		await this.abortBuildingRelease()
+		this.stop()
 	}
 
 	async globalKeyTest() {
 		await this.runAllTests()
+	}
+
+	stop() {
+		print(`Stop method not implemented for the current stream`, LogLevel.Unbearable)
 	}
 
 	// MARK: Target
