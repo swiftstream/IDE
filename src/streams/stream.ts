@@ -481,6 +481,10 @@ export class Stream {
 		print(`Run hot key is not implemented for the current stream`, LogLevel.Unbearable)
 	}
 
+	async globalKeyDebug() {
+		print(`Debug hot key is not implemented for the current stream`, LogLevel.Unbearable)
+	}
+
 	async globalKeyStop() {
 		await commands.executeCommand('workbench.action.debug.stop')
 		await this.abortBuildingDebug()

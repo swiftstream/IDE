@@ -52,6 +52,7 @@ export async function handleIfKeybindingsEditor(editor: TextEditor): Promise<boo
 
 const bindings = [
     { key: 'ctrl+r', command: 'SwiftStreamRun', when: 'true' },
+    { key: 'ctrl+shift+r', command: 'SwiftStreamDebug', when: 'true' },
     { key: 'ctrl+.', command: 'SwiftStreamStop', when: 'true' },
     { key: 'ctrl+b', command: 'SwiftStreamBuild', when: 'true' },
     { key: 'ctrl+u', command: 'SwiftStreamTest', when: 'true' }

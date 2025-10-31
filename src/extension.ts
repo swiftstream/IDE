@@ -261,6 +261,7 @@ const activateWebStream = async (): Promise<boolean> => {
 
 function registerCommands() {
 	extensionContext.subscriptions.push(commands.registerCommand('SwiftStreamRun', async () => currentStream?.globalKeyRun() ))
+	extensionContext.subscriptions.push(commands.registerCommand('SwiftStreamDebug', async () => currentStream?.globalKeyDebug() ))
 	extensionContext.subscriptions.push(commands.registerCommand('SwiftStreamStop', async () => currentStream?.globalKeyStop() ))
 	extensionContext.subscriptions.push(commands.registerCommand('SwiftStreamBuild', async () => currentStream?.globalKeyBuild() ))
 	extensionContext.subscriptions.push(commands.registerCommand('SwiftStreamTest', async () => currentStream?.globalKeyTest() ))

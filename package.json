@@ -194,6 +194,10 @@
         "title": "Swift Stream: Run"
       },
       {
+        "command": "SwiftStreamDebug",
+        "title": "Swift Stream: Debug"
+      },
+      {
         "command": "SwiftStreamStop",
         "title": "Swift Stream: Stop"
       },
@@ -376,6 +380,13 @@
         "win": "ctrl+r",
         "linux": "ctrl+r",
         "mac": "cmd+r",
+        "when": "true"
+      },
+      {
+        "command": "SwiftStreamDebug",
+        "win": "ctrl+shift+r",
+        "linux": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
         "when": "true"
       },
       {

@@ -144,6 +144,10 @@ export class PureStream extends Stream {
     // MARK: Global Keybinding
 
     async globalKeyRun() {
+        await this.run({ release: false })
+    }
+
+    async globalKeyDebug() {
         await this.debug()
     }
 
