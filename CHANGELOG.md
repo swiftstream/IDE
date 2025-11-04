@@ -1,4 +1,7 @@
 # Changelog
+## [1.16.1] - 2025-11-04
+### Changed
+- Updated `toolchains.json` with Swift 6.2.1
 ## [1.16.0] - 2025-10-31
 ### Added
 - `Ctrl/Cmd+Shift+R` for debug session
