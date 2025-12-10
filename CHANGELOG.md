@@ -1,4 +1,7 @@
 # Changelog
+## [1.16.3] - 2025-12-10
+### Changed
+- Updated link to Swift 6.2.1 in `toolchains.json`
 ## [1.16.2] - 2025-12-10
 ### Changed
 - Updated `toolchains.json` with Swift 6.2.2
