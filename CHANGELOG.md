@@ -1,4 +1,8 @@
 # Changelog
+## [1.16.2] - 2025-12-10
+### Changed
+- Updated `toolchains.json` with Swift 6.2.2
+- Removed `6.1-DEVELOPMENT-SNAPSHOT-2025-02-14` from `toolchains.json`
 ## [1.16.1] - 2025-11-04
 ### Changed
 - Updated `toolchains.json` with Swift 6.2.1
