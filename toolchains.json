@@ -180,7 +180,7 @@
                 "x86_64": "https://download.swift.org/swift-6.2.1-release/ubuntu2404/swift-6.2.1-RELEASE/swift-6.2.1-RELEASE-ubuntu24.04.tar.gz"
             },
             "artifact_urls": {
-                "wasi": "https://download.swift.org/swift-6.2.1-release/wasm/swift-6.2.1-RELEASE/swift-6.2.1-RELEASE_wasm.artifactbundle.tar.gz"
+                "wasi": "https://download.swift.org/swift-6.2.1-release/wasm-sdk/swift-6.2.1-RELEASE/swift-6.2.1-RELEASE_wasm.artifactbundle.tar.gz"
             }
 		},
         {
