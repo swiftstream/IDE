@@ -211,17 +211,17 @@ export class SidebarTreeView implements TreeDataProvider<Dependency> {
 						icon: 'coffee',
 						skipCommand: true
 					}))
-					const adbItems = await androidStream!.androidADBItems()
-					if (adbItems.length > 0) {
-						items.push(new Dependency({
-							id: SideTreeItem.ADB,
-							label: 'ADB',
-							version: ``,
-							state: this.expandState(SideTreeItem.Debug),
-							icon: this.fileIcon('adb3'),
-							skipCommand: true
-						}))
-					}
+					// const adbItems = await androidStream!.androidADBItems()
+					// if (adbItems.length > 0) {
+					// 	items.push(new Dependency({
+					// 		id: SideTreeItem.ADB,
+					// 		label: 'ADB',
+					// 		version: ``,
+					// 		state: this.expandState(SideTreeItem.Debug),
+					// 		icon: this.fileIcon('adb3'),
+					// 		skipCommand: true
+					// 	}))
+					// }
 					const libItems = await androidStream!.androidLibraryItems()
 					if (libItems.length > 0) {
 						items.push(new Dependency({
