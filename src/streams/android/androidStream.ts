@@ -373,24 +373,24 @@ export class AndroidStream extends Stream {
             icon: isBuildingDebug || this.isAnyHotBuilding() ? this.isAnyHotBuilding() ? 'sync~spin::charts.orange' : 'sync~spin::charts.green' : sidebarTreeView?.fileIcon('hammer')
         }))
         if (packageMode === PackageMode.App) {
-            items.push(new Dependency({
-                id: SideTreeItem.AndroidAppInstall,
-                label: 'Install',
-                version: '',
-                icon: 'remote'
-            }))
-            items.push(new Dependency({
-                id: SideTreeItem.AndroidAppRun,
-                label: 'Run',
-                version: '',
-                icon: 'run'
-            }))
-            items.push(new Dependency({
-                id: SideTreeItem.AndroidAppInstallAndRun,
-                label: 'Install & Run',
-                version: '',
-                icon: 'run-above'
-            }))
+            // items.push(new Dependency({
+            //     id: SideTreeItem.AndroidAppInstall,
+            //     label: 'Install',
+            //     version: '',
+            //     icon: 'remote'
+            // }))
+            // items.push(new Dependency({
+            //     id: SideTreeItem.AndroidAppRun,
+            //     label: 'Run',
+            //     version: '',
+            //     icon: 'run'
+            // }))
+            // items.push(new Dependency({
+            //     id: SideTreeItem.AndroidAppInstallAndRun,
+            //     label: 'Install & Run',
+            //     version: '',
+            //     icon: 'run-above'
+            // }))
         }
         return items
     }
@@ -399,18 +399,18 @@ export class AndroidStream extends Stream {
         let items = await super.debugOptionItems()
         const packageMode = AndroidStreamConfig.packageMode({ projectPath: projectDirectory! })
         if (packageMode === PackageMode.App) {
-            items.push(new Dependency({
-                id: SideTreeItem.AutoInstall,
-                label: 'Install after build',
-                version: this.isAutoInstallEnabled ? 'Enabled' : 'Disabled',
-                icon: this.isAutoInstallEnabled ? 'pass::charts.green' : 'circle-large-outline'
-            }))
-            items.push(new Dependency({
-                id: SideTreeItem.AutoRun,
-                label: 'Run after install',
-                version: this.isAutoRunEnabled ? 'Enabled' : 'Disabled',
-                icon: this.isAutoRunEnabled ? 'pass::charts.green' : 'circle-large-outline'
-            }))
+            // items.push(new Dependency({
+            //     id: SideTreeItem.AutoInstall,
+            //     label: 'Install after build',
+            //     version: this.isAutoInstallEnabled ? 'Enabled' : 'Disabled',
+            //     icon: this.isAutoInstallEnabled ? 'pass::charts.green' : 'circle-large-outline'
+            // }))
+            // items.push(new Dependency({
+            //     id: SideTreeItem.AutoRun,
+            //     label: 'Run after install',
+            //     version: this.isAutoRunEnabled ? 'Enabled' : 'Disabled',
+            //     icon: this.isAutoRunEnabled ? 'pass::charts.green' : 'circle-large-outline'
+            // }))
         }
         items.push(this.jniLogsElement())
         return items
