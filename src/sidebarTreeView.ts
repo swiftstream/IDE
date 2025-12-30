@@ -751,6 +751,7 @@ export enum SideTreeItem {
 		HotRebuild = 'HotRebuild',
 		AutoInstall = 'AutoInstall',
 		AutoRun = 'AutoRun',
+		DroidLogs = 'DroidLogs',
 		JNILogs = 'JNILogs',
 		DebugGzip = 'DebugGzip',
 		DebugBrotli = 'DebugBrotli',

@@ -419,6 +419,7 @@ export class Swift {
         release: boolean,
         swiftArgs?: string[],
         androidSDKCompileVersion?: string,
+        androidDroidLogs?: boolean,
         androidJNILogs?: boolean,
         abortHandler: AbortHandler,
         progressHandler?: (p: string) => void
@@ -494,6 +495,9 @@ export class Swift {
                 if (!DevContainerConfig.checkIfLegacyAndroidSDK()) {
                     checkAndroidCompileSDKVersion(compileVersion)
                 }
+                if (options.androidDroidLogs === true) {
+                    args.push(...['-Xswiftc', '-DDROIDLOGS'])
+                }
                 if (options.androidJNILogs === true) {
                     args.push(...['-Xswiftc', '-DJNILOGS'])
                 }
@@ -507,6 +511,9 @@ export class Swift {
                     args.push(...['--swift-sdk', `armv7-unknown-linux-android${compileVersion}`])
                     checkAndroidCompileSDKVersion(compileVersion)
                 }
+                if (options.androidDroidLogs === true) {
+                    args.push(...['-Xswiftc', '-DDROIDLOGS'])
+                }
                 if (options.androidJNILogs === true) {
                     args.push(...['-Xswiftc', '-DJNILOGS'])
                 }
@@ -517,6 +524,9 @@ export class Swift {
                 args.push(...['--swift-sdk', `x86_64-unknown-linux-android${compileVersion}`])
                 if (!DevContainerConfig.checkIfLegacyAndroidSDK()) {
                     checkAndroidCompileSDKVersion(compileVersion)
+                }
+                if (options.androidDroidLogs === true) {
+                    args.push(...['-Xswiftc', '-DDROIDLOGS'])
                 }
                 if (options.androidJNILogs === true) {
                     args.push(...['-Xswiftc', '-DJNILOGS'])

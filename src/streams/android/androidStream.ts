@@ -25,6 +25,7 @@ export class AndroidStream extends Stream {
     isAutoRunEnabled = false
     isGeneratingLibProject = false
     isGeneratingAppProject = false
+    isDroidLogsEnabled = false
     isJNILogsEnabled = false
 
     constructor(overrideConfigure: boolean = false) {
@@ -82,6 +83,7 @@ export class AndroidStream extends Stream {
             extensionContext.subscriptions.push(commands.registerCommand(this.generateProjectElement({ type: type }).id, async () => await this.generateGradleProject({ type: type }) ))
             extensionContext.subscriptions.push(commands.registerCommand(this.generateGradleWrapperElement({ type: type }).id, async () => await this.prepareGradleW({ type: type }) ))
             extensionContext.subscriptions.push(commands.registerCommand(this.gradleWAssembleElement({ type: type }).id, async () => await this.gradleWAssemble({ type: type }) ))
+            extensionContext.subscriptions.push(commands.registerCommand(this.droidLogsElement().id, async () => await this.switchDroidLogs() ))
             extensionContext.subscriptions.push(commands.registerCommand(this.jniLogsElement().id, async () => await this.switchJNILogs() ))
             extensionContext.subscriptions.push(commands.registerCommand(this.upgradeTo_6_2_16kb_Element().id, async () => await this.upgradeToSwift6_2_16kb() ))
             for (let c = 0; c < configurations.length; c++) {
@@ -125,6 +127,12 @@ export class AndroidStream extends Stream {
         label: this.gradle(options.type).wrapper.isAssembling ? 'Assembling' : 'Assemble',
         version: `${this.selectedScheme()?.buildConfiguration ?? ''}`,
         icon: this.gradle(options.type).wrapper.isAssembling ? 'sync~spin::charts.green' : sidebarTreeView?.fileIcon('hammer')
+    })
+    droidLogsElement = () => new Dependency({
+        id: SideTreeItem.DroidLogs,
+        label: 'Droid logs',
+        version: this.isDroidLogsEnabled ? 'Enabled' : 'Disabled',
+        icon: this.isDroidLogsEnabled ? 'pass::charts.green' : 'circle-large-outline'
     })
     jniLogsElement = () => new Dependency({
         id: SideTreeItem.JNILogs,
@@ -272,6 +280,11 @@ export class AndroidStream extends Stream {
         await this.gradle(options.type).wrapper.assemble({ configuration: configuration })
     }
 
+    async switchDroidLogs() {
+        this.isDroidLogsEnabled = !this.isDroidLogsEnabled
+        sidebarTreeView?.refresh()
+    }
+
     async switchJNILogs() {
         this.isJNILogsEnabled = !this.isJNILogsEnabled
         sidebarTreeView?.refresh()
@@ -412,6 +425,7 @@ export class AndroidStream extends Stream {
             //     icon: this.isAutoRunEnabled ? 'pass::charts.green' : 'circle-large-outline'
             // }))
         }
+        items.push(this.droidLogsElement())
         items.push(this.jniLogsElement())
         return items
     }

@@ -15,6 +15,7 @@ export async function buildExecutableTarget(options: {
     force: boolean,
     swiftArgs?: string[] | Record<string, string[]>,
     androidSDKCompileVersion: string,
+    androidDroidLogs: boolean,
     androidJNILogs: boolean,
     abortHandler: AbortHandler
 }) {
@@ -48,6 +49,7 @@ export async function buildExecutableTarget(options: {
             release: options.release,
             swiftArgs: swiftArgs,
             androidSDKCompileVersion: options.androidSDKCompileVersion,
+            androidDroidLogs: options.androidDroidLogs,
             androidJNILogs: options.androidJNILogs,
             abortHandler: options.abortHandler,
             progressHandler: (p) => {

@@ -100,6 +100,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
                 release: release,
                 swiftArgs: scheme.swiftArgs,
                 androidSDKCompileVersion: `${streamConfig.config.compileSDK}`,
+                androidDroidLogs: stream.isDroidLogsEnabled,
                 androidJNILogs: stream.isJNILogsEnabled,
                 force: true,
                 abortHandler: abortHandler
