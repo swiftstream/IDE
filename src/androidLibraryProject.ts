@@ -47,6 +47,13 @@ export class AndroidLibraryProject {
                 Handlebars.compile(readFile(path.join('assets', 'Sources', 'android', 'library', 'settings.gradle.kts.hbs')))(settingsPayload)
             )
         }
+        const gitignorePath = path.join(libraryPath, '.gitignore')
+        if (!fs.existsSync(gitignorePath)) {
+            fs.writeFileSync(
+                gitignorePath,
+                `.idea\n.gradle\nbuild\n.DS_Store\nlocal.properties`
+            )
+        }
         for (let i = 0; i < options.targets.length; i++) {
             const target = options.targets[i]
             const targetPath = path.join(libraryPath, target.toLowerCase())
@@ -542,7 +549,10 @@ export class AndroidLibraryProject {
             unbearable: `Updating "${options.target.toLowerCase()}" gradle submodule at ${buildGradlePath}`
         })
         let buildGradleFile = fs.readFileSync(buildGradlePath, 'utf8')
-        const newNamespace = `${options.config.config.packageName}.${options.target.toLowerCase()}`
+        const newNamespace = 
+            (options.config.config.packageMode == PackageMode.App)
+            ? `${AndroidStreamConfig.DroidPackage}.${options.target.toLowerCase()}`
+            : `${options.config.config.packageName}.${options.target.toLowerCase()}`
         buildGradleFile = buildGradleFile.replace(
             /^(\s*)namespace\s*=\s*["'][^"']*["']/m,
             `$1namespace = "${newNamespace}"`
@@ -631,7 +641,7 @@ export class AndroidLibraryProject {
         if (!options.activityBodies) { return }
         const libraryPath = path.join(options.projectPath, 'Library')
         const target = 'appui'
-        const nameSpaceWithTarget = `${options.streamConfig.config.packageName}.${target.toLowerCase()}`
+        const nameSpaceWithTarget = `${AndroidStreamConfig.DroidPackage}.${target.toLowerCase()}`
         const targetPath = path.join(libraryPath, target)
         if (!fs.existsSync(targetPath)) {
             fs.mkdirSync(targetPath)
@@ -669,6 +679,53 @@ export class AndroidLibraryProject {
         }
     }
 
+    static async proceedFragmentBodies(stream: AndroidStream, options: {
+        projectPath: string,
+        streamConfig: AndroidStreamConfig,
+        fragmentBodies: Record<string, string> | undefined
+    }) {
+        if (options.streamConfig.config.packageMode != PackageMode.App) { return }
+        if (!options.fragmentBodies) { return }
+        const libraryPath = path.join(options.projectPath, 'Library')
+        const target = 'appui'
+        const nameSpaceWithTarget = `${AndroidStreamConfig.DroidPackage}.${target.toLowerCase()}`
+        const targetPath = path.join(libraryPath, target)
+        if (!fs.existsSync(targetPath)) {
+            fs.mkdirSync(targetPath)
+        }
+        const fragmentNames = Object.keys(options.fragmentBodies)
+        const targetSrcPath = path.join(targetPath, 'src')
+        if (!fs.existsSync(targetSrcPath)) {
+            fs.mkdirSync(targetSrcPath)
+        }
+        const targetSrcMainPath = path.join(targetSrcPath, 'main')
+        if (!fs.existsSync(targetSrcMainPath)) {
+            fs.mkdirSync(targetSrcMainPath)
+        }
+        const targetSrcMainJavaPath = path.join(targetSrcMainPath, 'java')
+        if (!fs.existsSync(targetSrcMainJavaPath)) {
+            fs.mkdirSync(targetSrcMainJavaPath)
+        }
+        const javaFilesRootPath = AndroidLibraryProject.createFolderStructureIfNeeded(targetSrcMainJavaPath, nameSpaceWithTarget)
+        const existingFiles = fs.readdirSync(javaFilesRootPath)
+        for (const existingFile of existingFiles) {
+            if (existingFile.endsWith('Fragment.kt')) {
+                const fullPath = path.join(javaFilesRootPath, existingFile)
+                if (fs.statSync(fullPath).isFile()) {
+                    fs.unlinkSync(fullPath)
+                }
+            }
+        }
+        for (let i = 0; i < fragmentNames.length; i++) {
+            const fragmentName = fragmentNames[i]
+            const encodedFragment = options.fragmentBodies[fragmentName]
+            const decodedFragment = atob(encodedFragment)
+            const newContent = `package ${nameSpaceWithTarget}\n\n${decodedFragment}`
+            const fragmentPath = path.join(javaFilesRootPath, `${fragmentName}.kt`)
+            fs.writeFileSync(fragmentPath, newContent, 'utf8')
+        }
+    }
+
     static async proceedDependencies(stream: AndroidStream, options: {
         projectPath: string,
         streamConfig: AndroidStreamConfig,
@@ -689,8 +746,9 @@ export class AndroidLibraryProject {
         let newContent = before
         newContent += begin
         if (options.streamConfig.config.soMode === SoMode.Packed) {
-            for (let d = 0; d < options.dependencies.length; d++) {
-                newContent += `\n    ${options.dependencies[d]}`
+            const deps = options.dependencies.sort((a, b) => a.localeCompare(b))
+            for (let d = 0; d < deps.length; d++) {
+                newContent += `\n    ${deps[d]}`
             }
         }
         newContent += '\n    ' + end

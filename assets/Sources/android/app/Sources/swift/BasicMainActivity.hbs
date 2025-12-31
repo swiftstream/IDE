@@ -1,0 +1,234 @@
+import Droid
+
+final class MainActivity: AppCompatActivity {
+    override class var exported: Bool? { true }
+    override class var theme: Style? { .material3DayNightNoActionBar }
+    override class var intentFilters: [IntentFilter] { [.mainLauncher] }
+    
+    let fabId = nextViewId()
+    let fragmentContainerId = nextViewId()
+    lazy var containerLayout = CoordinatorLayout(id: fragmentContainerId)
+
+    @State var toolbarTitle: String = ""
+
+    override func buildUI() {
+        let actionBarSize = actionBarSize()
+        window()?.statusBarColor(.transparent)
+                 .navigationBarColor(.transparent)
+        body {
+            CoordinatorLayout {
+                AppBarLayout {
+                    MaterialToolbar()
+                        .width(.matchParent)
+                        .height(actionBarSize, .px)
+                        .title($toolbarTitle)
+                        .scrollFlags(.noScroll)
+                }
+                .width(.matchParent)
+                .height(.wrapContent)
+                .fitsSystemWindows()
+                containerLayout
+                    .width(.matchParent)
+                    .height(.matchParent)
+                    .marginTop(actionBarSize, .px)
+                FloatingActionButton(id: fabId)
+                    .width(.wrapContent)
+                    .height(.wrapContent)
+                    .gravity([.bottom, .end])
+                    .marginBottom(16)
+                    .marginRight(16)
+                    .imageResource(android.R.drawable.ic_dialog_email)
+                    .onClick { event in
+                        Snackbar.make(event.view, "Replace with your own action", .long)
+                            .action("Action") {
+                                print("Snackbar action clicked")
+                            }
+                            .textColor(.cyan)
+                            .animationMode(.slide)
+                            .show()
+                    }
+            }
+            .width(.matchParent)
+            .height(.matchParent)
+            .fitsSystemWindows()
+        }
+    }
+
+    override func onStart() {
+        super.onStart()
+        supportFragmentManager()
+            .beginTransaction()
+            .reorderingAllowed()
+            .replace(containerViewId: containerLayout.id, fragment: FragmentOne(self))
+            .commit()
+    }
+
+    func navigateToSecondFragment() {
+        supportFragmentManager()
+            .beginTransaction()
+            .reorderingAllowed()
+            .replace(containerViewId: containerLayout.id, fragment: FragmentTwo(self))
+            .addToBackStack(name: "second_fragment") // Add to back stack for back navigation
+            .commit()
+    }
+
+    func navigateToFirstFragment() {
+        supportFragmentManager()
+            .beginTransaction()
+            .reorderingAllowed()
+            .replace(containerViewId: containerLayout.id, fragment: FragmentOne(self))
+            .addToBackStack(name: "first_fragment") // Add to back stack for back navigation
+            .commit()
+    }
+}
+
+
+final class FragmentOne: Fragment {
+    weak var activity: MainActivity?
+
+    init (_ activity: MainActivity) {
+        self.activity = activity
+        super.init()
+    }
+
+    required init(_ object: JObject) {
+        self.activity = nil
+        super.init(object)
+    }
+
+    let buttonId = nextViewId()
+    let textViewId = nextViewId()
+
+    override func buildUI() {
+        super.buildUI()
+        body {
+            NestedScrollView {
+                ConstraintLayout {
+                    MaterialButton(id: self.buttonId, "Next")
+                        .width(.wrapContent)
+                        .height(.wrapContent)
+                        .bottomToTop(self.textViewId)
+                        .endToEnd()
+                        .startToStart()
+                        .topToTop()
+                        .onClick {
+                            self.activity?.navigateToSecondFragment()
+                        }
+                    TextView(id: self.textViewId, String.fragmentTextOne)
+                        .width(.matchParent)
+                        .height(.matchParent)
+                        .bottomToBottom()
+                        .endToEnd()
+                        .startToStart()
+                        .topToBottom(self.buttonId)
+                        .marginTop(16)
+                }
+                .padding()
+            }
+            .behavior(AppBarLayout.ScrollingViewBehavior())
+        }
+    }
+
+    override func onStart() {
+        super.onStart()
+        self.activity?.toolbarTitle = "Fragment One"
+    }
+}
+
+final class FragmentTwo: Fragment {
+    weak var activity: MainActivity?
+
+    init (_ activity: MainActivity) {
+        self.activity = activity
+        super.init()
+    }
+
+    required init(_ object: JObject) {
+        self.activity = nil
+        super.init(object)
+    }
+
+    let buttonId = nextViewId()
+    let textViewId = nextViewId()
+
+    override func buildUI() {
+        super.buildUI()
+        body {
+            NestedScrollView {
+                ConstraintLayout {
+                    MaterialButton(id: self.buttonId, "Previous")
+                        .width(.wrapContent)
+                        .height(.wrapContent)
+                        .bottomToTop(self.textViewId)
+                        .endToEnd()
+                        .startToStart()
+                        .topToTop()
+                        .onClick {
+                            self.activity?.navigateToFirstFragment()
+                        }
+                    TextView(id: self.textViewId, String.fragmentTextTwo)
+                        .width(.matchParent)
+                        .height(.matchParent)
+                        .bottomToBottom()
+                        .endToEnd()
+                        .startToStart()
+                        .topToBottom(self.buttonId)
+                        .marginTop(16)
+                }
+                .padding()
+            }
+            .behavior(AppBarLayout.ScrollingViewBehavior())
+        }
+    }
+
+    override func onStart() {
+        super.onStart()
+        self.activity?.toolbarTitle = "Fragment Two"
+    }
+}
+
+extension String {
+    static var fragmentTextOne: String { """
+    Lorem ipsum dolor sit amet. Ea minima doloremque non veritatis nesciunt et sunt dolore. Et quasi perferendis qui sequi laudantium et iusto officia ea tempore doloribus id rerum cumque. A neque quia hic suscipit accusantium qui ipsa nisi vel dolores sint. Qui fugit officia quo possimus recusandae est illo voluptate ut delectus deleniti rem illum voluptatem.
+    
+    Et unde reiciendis in voluptas quae quo asperiores nulla. 33 assumenda eius et cumque doloremque et repudiandae deserunt ut deserunt dignissimos est odio aliquam non nobis doloremque eum esse vitae.
+
+    33 nostrum autem non delectus deleniti non laudantium omnis aut omnis autem a sunt minima vel dolor incidunt est excepturi rerum. Qui culpa voluptatem aut voluptas beatae ex reprehenderit aperiam aut deleniti quia et iste pariatur. Qui fugit odit ut neque sint est sapiente sint et iste harum non tempore galisum eos accusamus tenetur.
+
+    Ea nemo repellendus sit earum quos qui dolorum dolores! Et laboriosam illum ex maxime corporis est quae voluptatem et possimus amet et dicta eius et error animi.
+
+    Sed vero porro et quidem accusamus sed voluptatem quam et quaerat maiores. Est obcaecati asperiores eos fugiat consequatur est voluptates minus qui voluptatum iusto. Et nostrum dolores est enim expedita ea fugit iure ut nemo officia sed mollitia voluptatem et perferendis exercitationem. Et eius nemo in velit eligendi vel dignissimos illo.
+
+    Non galisum consequatur ea dolores velit quo reprehenderit iusto. Ex sunt rerum aut cumque beatae sed corrupti excepturi.
+
+    Et cumque omnis sit tempore velit est cumque ratione ex sequi dolore sit optio reiciendis At quos deleniti. Sit odio perferendis ut illo facere aut rerum nobis et officia reiciendis est mollitia iusto. Aut iusto laboriosam ut odit excepturi aut aspernatur nihil ea culpa quasi est quis magnam aut sapiente asperiores in tempore sint. Cum iusto aspernatur sed nostrum voluptatem et galisum maiores qui rerum quae qui nesciunt deserunt ab eius explicabo rem culpa consequuntur.
+
+    Vel ipsa asperiores sit galisum temporibus quo vitae error sit aliquid placeat. Ex dicta eius et voluptatem earum et blanditiis quas sit unde dolorem.
+
+    Et nostrum temporibus et sunt reiciendis rem ullam culpa eum numquam beatae At debitis ipsa id mollitia aliquam. Eos dolor officia id quis aliquid a asperiores dolor est quisquam aperiam. Ab rerum debitis et sequi enim et culpa voluptatum sed minus iste. Quo facilis obcaecati ut iusto vero in inventore temporibus qui laudantium consequatur?
+
+    Sit alias harum ut accusamus animi quo eius dolorem. Qui velit soluta et minima maxime aut maxime necessitatibus qui fugit ipsa eos tempore labore vel dolorum repellat. Aut eius voluptate ut quia voluptates quo Quis saepe et consectetur impedit in blanditiis quam.
+    """ }
+
+    static var fragmentTextTwo: String { """
+    Quo exercitationem quidem cum rerum consequatur et totam laudantium et itaque reprehenderit et debitis expedita ea unde aspernatur ab unde incidunt. Qui dolores sint At labore dolore nam quia unde ut quia enim aut amet illum et expedita quod. Aut excepturi placeat At voluptate pariatur in tempore quibusdam ut dignissimos fugit sed enim iure.
+
+    Et omnis ipsa rem facilis optio vel fuga dolores ut quaerat tenetur est voluptatem velit aut omnis dolorem sed voluptatem aspernatur. Sed voluptatem voluptatem id voluptas veniam et repellendus sequi eos saepe corporis eos similique voluptas At iure animi.
+
+    Ad optio consequuntur in debitis fugiat est quos maxime non quia facere! Sed corrupti veniam eum quasi vero et aliquid inventore.
+
+    Quo assumenda exercitationem eum dolores ipsum quo molestias maxime et quam maiores? Quo rerum debitis sit facilis maxime aut sapiente dolores non quaerat sint eos quaerat incidunt et harum tempore. In unde inventore et consequatur corrupti eum voluptatem facere non dolores iusto aut quibusdam tempore nam odit natus?
+
+    Vel fugit quasi et fugiat consequuntur et labore error et repellat illo. Est nemo laboriosam a fugit officia est accusamus internos et voluptate incidunt sed eligendi harum!
+
+    Et blanditiis perspiciatis vel tempore odit est laborum velit aut enim ullam ut beatae velit. Eos quisquam consequuntur qui incidunt doloremque et consequatur praesentium et ipsa dicta.
+
+    Et quaerat assumenda et dignissimos dolorem ut explicabo unde ex enim molestiae sed praesentium quasi et iusto autem! Qui dolore voluptatum qui cumque temporibus qui totam quod At repellat ratione id exercitationem consectetur qui doloremque molestiae qui rerum commodi.
+
+    Est distinctio eaque ad debitis modi 33 consequatur aspernatur id tempore omnis ut atque nobis non consequatur eligendi. Sed quis deserunt et vitae perspiciatis qui corporis quia ut necessitatibus consequuntur ex sunt ratione.
+
+    Aut nihil delectus ad voluptatem adipisci et omnis illum est rerum enim cum architecto nisi et similique nihil aut quaerat nihil! Et voluptatibus officia vel cumque voluptatum ut consequuntur fugiat vel voluptatem magnam. Et quam fugiat sed ipsum expedita sed nihil sunt cum repellat nemo! Ut corrupti ducimus et voluptatem nihil et adipisci sint eum odit tenetur ut suscipit suscipit qui tenetur quis.
+
+    Quo pariatur voluptatem id aliquid natus ut voluptatem minus et quaerat nobis et illum harum id quia dolor. Eos labore quas aut reprehenderit quaerat ex quos animi eos voluptatibus rerum qui nobis reiciendis qui cumque expedita. Et cumque galisum est quia recusandae ab ipsa adipisci.
+    """ }
+}

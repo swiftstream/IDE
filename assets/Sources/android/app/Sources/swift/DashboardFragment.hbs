@@ -1,0 +1,19 @@
+import Droid
+
+final class DashboardFragment: Fragment {
+    override func buildUI() {
+        super.buildUI()
+        body {
+            RelativeLayout{
+                TextView("Dashboard")
+                    .width(.wrapContent)
+                    .height(.wrapContent)
+                    .centerVertical()
+                    .centerHorizontal()
+            }
+            .backgroundColor(.green)
+            .width(.matchParent)
+            .height(.matchParent)
+        }
+    }
+}

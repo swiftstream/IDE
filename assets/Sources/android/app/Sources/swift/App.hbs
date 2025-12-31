@@ -1,22 +1,28 @@
 import Droid
-import Logging
 
 @main
 public final class App: DroidApp {
 	@AppBuilder public override var body: Content {
         Lifecycle.didFinishLaunching{
 			App.setLogLevel(.debug)
+			// App.setInnerLogLevel(.trace)
 			Log.i("🚀 Lifecycle.didFinishLaunching")
 		}
 		Manifest
 			.application {
 				.allowBackup()
-				.label("{{name}}")
+				.label("{{name}}"){{#if theme}}
+				.theme(.{{theme}}){{/if}}{{#if (arrNotEmpty activities)}}
 				.activities(
 					{{#each activities as |activity|}}
-					{{{activity}}}Activity.self
+					{{{activity}}}Activity.self{{#unless @last}},{{/unless}}
 					{{/each}}
-				)
+				){{/if}}{{#if (arrNotEmpty fragments)}}
+				.fragments(
+					{{#each fragments as |fragment|}}
+					{{{fragment}}}Fragment.self{{#unless @last}},{{/unless}}
+					{{/each}}
+				){{/if}}
 			}
     }
 }

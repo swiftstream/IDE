@@ -1,0 +1,19 @@
+import Droid
+
+final class NotificationsFragment: Fragment {
+    override func buildUI() {
+        super.buildUI()
+        body {
+            RelativeLayout{
+                TextView("Notifications")
+                    .width(.wrapContent)
+                    .height(.wrapContent)
+                    .centerVertical()
+                    .centerHorizontal()
+            }
+            .backgroundColor(.blue)
+            .width(.matchParent)
+            .height(.matchParent)
+        }
+    }
+}

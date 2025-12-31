@@ -239,7 +239,7 @@ export class AndroidStream extends Stream {
             case GradleFolder.Library:
                 AndroidLibraryProject.generateIfNeeded({
                     projectPath: projectDirectory!,
-                    package: streamConfig.config.packageName,
+                    package: AndroidStreamConfig.DroidPackage,//streamConfig.config.packageName,
                     name: streamConfig.config.name,
                     targets: targets,
                     compileSdk: streamConfig.config.compileSDK,
@@ -371,14 +371,14 @@ export class AndroidStream extends Stream {
     async debugActionItems(): Promise<Dependency[]> {
         let items = await super.debugActionItems()
         const packageMode = AndroidStreamConfig.packageMode({ projectPath: projectDirectory! })
-        if (packageMode === PackageMode.App) {
-            items.push(new Dependency({
-                id: SideTreeItem.ADBDevice,
-                label: 'Device',
-                version: 'Not selected',
-                icon: 'device-mobile'
-            }))
-        }
+        // if (packageMode === PackageMode.App) {
+        //     items.push(new Dependency({
+        //         id: SideTreeItem.ADBDevice,
+        //         label: 'Device',
+        //         version: 'Not selected',
+        //         icon: 'device-mobile'
+        //     }))
+        // }
         items.push(new Dependency({
             id: SideTreeItem.BuildDebug,
             tooltip: 'Cmd+B or Ctrl+B',

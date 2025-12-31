@@ -1,0 +1,140 @@
+import Droid
+
+// This is a Single-Activity app using Android Navigation Component.
+// All screen changes are handled by NavController inside NavHostFragment.
+final class MainActivity: AppCompatActivity {
+    override class var exported: Bool? { true }
+    override class var theme: Style? { .material3DayNightNoActionBar }
+    override class var intentFilters: [IntentFilter] { [.mainLauncher] }
+
+    // MARK: View & navigation IDs
+    // IMPORTANT:
+    // - These IDs must be stable for the entire Activity lifetime
+    // - FragmentManager uses them to restore fragments after configuration changes
+
+    /// Container for NavHostFragment
+    let navHostContainerId: Int32 = .nextViewId()
+
+    /// Navigation destination IDs (must match menu item IDs)
+    let homeFragmentId: Int32 = .nextViewId()
+    let dashboardFragmentId: Int32 = .nextViewId()
+    let notificationsFragmentId: Int32 = .nextViewId()
+
+    var navController: NavController?
+    lazy var bottomNavView = BottomNavigationView()
+    
+    // MARK: UI construction
+    
+    override func buildUI() {
+        enableEdgeToEdge()
+        body {
+            ConstraintLayout {
+                FragmentContainerView(id: navHostContainerId)
+                    .topToParent()
+                    .leftToParent()
+                    .rightToParent()
+                    .bottomToTop(bottomNavView.id)
+                    .width(.matchConstraint)
+                    .height(.matchConstraint)
+                    .backgroundColor(.lime)
+                    .fitsSystemWindows()
+                bottomNavView
+                    .width(.matchParent)
+                    .leftToParent()
+                    .rightToParent()
+                    .bottomToParent()
+                    .height(100)
+                    .onApplyWindowInsetsCompat { $0.insets }
+            }
+            .backgroundColor(.purple)
+            .width(.matchParent)
+            .height(.matchParent)
+        }
+    }
+
+    // MARK: Activity lifecycle
+
+    override func onCreate(_ context: ActivityContext, savedInstanceState: Bundle?) {
+        super.onCreate(context, savedInstanceState: savedInstanceState)
+        setupMenuIfNeeded()
+        if savedInstanceState == nil {
+            guard let navHostFragment = NavHostFragment() else { return }
+            supportFragmentManager()
+                .beginTransaction()
+                .reorderingAllowed()
+                .replace(containerViewId: navHostContainerId, fragment: navHostFragment)
+                .primaryNavigationFragment(navHostFragment)
+                .commitNow()
+        }
+        navController = resolveNavController()
+        if let navController {
+            // Navigation graph must be set only once
+            setupNavGraph()
+            // Bind BottomNavigationView to NavController
+            NavigationUI.setupWithNavController(bottomNavView, navController)
+        }
+        enableEdgeToEdge()
+    }
+
+    override func onStart() {
+        super.onStart()
+        navController = resolveNavController()
+        if let navController {
+            // Bind BottomNavigationView to NavController
+            NavigationUI.setupWithNavController(bottomNavView, navController)
+        }
+        setupMenuIfNeeded()
+    }
+
+    // MARK: Bottom navigation menu
+
+    /// Creates bottom navigation items only once.
+    /// IDs must match NavGraph destination IDs.
+    private func setupMenuIfNeeded() {
+        guard let menu = bottomNavView.menu(), menu.size() == 0 else { return }
+        menu.add(itemId: homeFragmentId, title: "Home")?.icon(android.R.drawable.ic_menu_view)
+        menu.add(itemId: dashboardFragmentId, title: "Dashboard")?.icon(android.R.drawable.ic_menu_manage)
+        menu.add(itemId: notificationsFragmentId, title: "Notifications")?.icon(android.R.drawable.ic_menu_info_details)
+    }
+
+    // MARK: Navigation graph
+
+    /// Programmatically builds NavGraph.
+    /// This replaces XML navigation graphs.
+    private func setupNavGraph() {
+        guard
+            let navController,
+            let provider = navController.navigatorProvider(),
+            let fragmentNavigator = provider.navigator(FragmentNavigator.self),
+            let graphNavigator = provider.navigator(NavGraphNavigator.self),
+            let graph = NavGraph(graphNavigator)
+        else { return }
+        // Home destination
+        if let dest = fragmentNavigator.createDestination() {
+            dest.id(homeFragmentId).className(HomeFragment.self)
+            graph.addDestination(dest)
+        }
+        // Dashboard destination
+        if let dest = fragmentNavigator.createDestination() {
+            dest.id(dashboardFragmentId).className(DashboardFragment.self)
+            graph.addDestination(dest)
+        }
+        // Notifications destination
+        if let dest = fragmentNavigator.createDestination() {
+            dest.id(notificationsFragmentId).className(NotificationsFragment.self)
+            graph.addDestination(dest)
+        }
+        // Initial screen
+        graph.startDestination(dashboardFragmentId)
+        // Assign graph to NavController
+        navController.graph(graph)
+    }
+
+    private func resolveNavController() -> NavController? {
+        guard
+            let fm = supportFragmentManager(),
+            let fragment = fm.findFragmentById(navHostContainerId)
+        else { return nil }
+        return NavHostFragment.findNavController(fragment)
+    }
+}

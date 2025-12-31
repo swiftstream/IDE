@@ -12,6 +12,7 @@ import { commands, ProgressLocation, ShellExecution, Task, TaskExecution, TaskPr
 import { AbortHandler } from './bash'
 import { SwiftPackageDump } from './swiftPackageDump'
 import { DevContainerConfig } from './devContainerConfig'
+import { AndroidStreamConfig } from './androidStreamConfig'
 
 export class Swift {
     private packageDump: SwiftPackageDump
@@ -783,6 +784,7 @@ export class Swift {
     
     async askToChooseTargetIfNeeded(options: { release: boolean, abortHandler?: AbortHandler, forceFetch?: boolean, forceChoose?: boolean, withProgress?: boolean }) {
         try {
+            const selectedScheme = AndroidStreamConfig.selectedScheme({ projectPath: projectDirectory! })
             if (options.forceFetch === true || !this.cachedBuildTargets) {
                 async function retrieve(context: Swift) {
                     const targetsDump = await context.getTargets({
@@ -829,14 +831,25 @@ export class Swift {
                 }
             }
             if (allTargets.length == 1) {
-                if (options.forceChoose === true) {
+                if (selectedScheme?.swiftTargets && selectedScheme.swiftTargets.includes(allTargets[0])) {
+                    this.selectedReleaseTarget = allTargets[0]
+                    this.selectedDebugTarget = allTargets[0]
+                } else if (options.forceChoose === true) {
                     await chooseTarget(this)
                 } else {
                     this.selectedReleaseTarget = allTargets[0]
                     this.selectedDebugTarget = allTargets[0]
                 }
             } else if (allTargets.length > 0) {
-                await chooseTarget(this)
+                let selected = false
+                for (let i = 0; i < allTargets.length; i++) {
+                    const target = allTargets[i]
+                    if (selectedScheme?.swiftTargets && selectedScheme.swiftTargets.includes(target)) {
+                        this.selectedReleaseTarget = target
+                        this.selectedDebugTarget = target
+                    }
+                }
+                if (!selected) await chooseTarget(this)
             }
             if (options.release && this.selectedReleaseTarget) sidebarTreeView?.refresh()
             else if (!options.release && this.selectedDebugTarget) sidebarTreeView?.refresh()
@@ -918,11 +931,14 @@ export class Swift {
     private prepcoressingBinary = (release: boolean) => path.join(projectDirectory!, '.build', '.metadata', release ? 'release' : 'debug', 'AppManifest')
 
     async androidBuildMetadata(options: {
-        release: boolean
+        release: boolean,
+        abortHandler: AbortHandler,
+        progressHandler?: (p: string) => void
     }) {
         if (!fs.existsSync(`${projectDirectory}/Package.swift`)) {
             throw `No Package.swift file in the project directory`
         }
+        print(`\`androidBuildMetadata\` started`, LogLevel.Verbose)
         const nativeArgs: string[] = [
             'build',
             '-Xswiftc', '-DANDROIDBUILDING',
@@ -930,7 +946,68 @@ export class Swift {
             '--build-path', this.prepcoressingBuildPath,
             '--product', 'AppManifest'
         ]
-        await this.execute(nativeArgs, { type: SwiftBuildType.Native })
+        try {
+            if (options.abortHandler.isCancelled) return
+            print(`🧰 ${this.stream.toolchain.swiftPath} ${nativeArgs.join(' ')}`, LogLevel.Verbose)
+            var env = process.env
+            env.SWIFT_MODE = `${SwiftBuildType.Native}`.toUpperCase()
+            const result = await this.stream.bash.execute({
+                path: this.stream.toolchain.swiftPath,
+                description: `get executable target`,
+                cwd: projectDirectory,
+                env: env,
+                abortHandler: options.abortHandler,
+                processInstanceHandler: (process) => {
+                    options.abortHandler.addProcess(process)
+                    if (options.abortHandler.isCancelled) return
+                    if (!options.progressHandler) return
+                    process.stdout.on('data', function(msg) {
+                        if (options.abortHandler.isCancelled) return
+                        const m = msg.toString()
+                        if (m.startsWith('[')) {
+                            options.progressHandler!(m.split(']')[0].replace('[', ''))
+                        }
+                    })
+                }
+            }, nativeArgs)
+            if (options.abortHandler.isCancelled) return
+            const ending = await this.processCompilationErrors(result.stdout, () => options.abortHandler.isCancelled)
+            if (options.abortHandler.isCancelled) return
+            if (ending.length > 0) {
+                print(`${ending}`, LogLevel.Detailed)
+            }
+            sidebarTreeView?.refresh()
+        } catch (error: any) {
+            const rawError: string = error.stdout
+            if (rawError.length == 0) {
+                var errString: string = error.stderr
+                if (errString.length > 0) {
+                    const separator = ': error:'
+                    errString = errString.includes(separator) ? errString.split(separator).pop()?.replace(/^\s+|\s+$/g, '') ?? '' : errString
+                    throw `Build failed: ${errString}`
+                } else {
+                    throw `Build failed with exit code ${error.error.code} ${error.stderr}`
+                }
+            }
+            const ending = await this.processCompilationErrors(rawError, () => options.abortHandler.isCancelled)
+            sidebarTreeView?.refresh()
+            throw `🥺 Unable to continue cause of failed compilation, ${ending}\n`
+        }
+    }
+
+    private extractContent(content: string): string | undefined {
+        const begin = '++==DROID-CONTENT-BEGIN==++'
+        const end = '++==DROID-CONTENT-END==++'
+        if (content.includes(begin) && content.includes(end)) {
+            const firstSplit = content.split(begin)
+            if (firstSplit.length == 2) {
+                return firstSplit[1].split(end)[0].trim()
+            } else {
+                return undefined
+            }
+        } else {
+            return undefined
+        }
     }
 
     async androidManifest(options: {
@@ -950,7 +1027,7 @@ export class Swift {
             }, ['--action', 'manifest'])
             if (result.stderr.length > 0)
                 throw result.stderr
-            return result.stdout
+            return this.extractContent(result.stdout)
         } catch (error: any) {
             return undefined
         }
@@ -973,7 +1050,40 @@ export class Swift {
             }, ['--action', 'generateAllActivities'])
             if (bashResult.stderr.length > 0)
                 throw bashResult.stderr
-            return JSON.parse(bashResult.stdout)
+            const content = this.extractContent(bashResult.stdout)
+            if (content) {
+                return JSON.parse(content)
+            } else {
+                return undefined
+            }
+        } catch (error: any) {
+            return undefined
+        }
+    }
+
+    async androidGetAllFragmentBodies(options: {
+        release: boolean
+    }): Promise<Record<string, any> | undefined> {
+        const prepcoressingBinaryPath = this.prepcoressingBinary(options.release)
+        if (!fs.existsSync(prepcoressingBinaryPath)) {
+            throw 'Please build the `AppManifest` target first via `androidBuildMetadata` method'
+        }
+        try {
+            const bashResult = await this.stream.bash.execute({
+                path: prepcoressingBinaryPath,
+                description: `get all fragment bodies`,
+                cwd: projectDirectory,
+                env: env,
+                abortHandler: undefined
+            }, ['--action', 'generateAllFragments'])
+            if (bashResult.stderr.length > 0)
+                throw bashResult.stderr
+            const content = this.extractContent(bashResult.stdout)
+            if (content) {
+                return JSON.parse(content)
+            } else {
+                return undefined
+            }
         } catch (error: any) {
             return undefined
         }
@@ -996,7 +1106,12 @@ export class Swift {
             }, ['--action', 'gradleDependencies'])
             if (bashResult.stderr.length > 0)
                 throw bashResult.stderr
-            return JSON.parse(bashResult.stdout)
+            const content = this.extractContent(bashResult.stdout)
+            if (content) {
+                return JSON.parse(content)
+            } else {
+                return undefined
+            }
         } catch (error: any) {
             return undefined
         }

@@ -728,19 +728,23 @@ async function createNewProjectFiles(
 									case 'empty': {
 										writeFile({ from: 'App.hbs', to: 'App.swift', payload: { name: name, activities: ['Main'] } })
 										const activitiesFolder = createSubfolderIfNeeded(targetFolder, 'Activities')
-										writeFile({ folder: activitiesFolder, from: 'MainActivity.hbs', to: 'MainActivity.swift', payload: hbsSourcePayload })
+										writeFile({ folder: activitiesFolder, from: 'EmptyMainActivity.hbs', to: 'MainActivity.swift', payload: hbsSourcePayload })
 										break
 									}
 									case 'basic': {
 										writeFile({ from: 'App.hbs', to: 'App.swift', payload: { name: name, activities: ['Main'] } })
 										const activitiesFolder = createSubfolderIfNeeded(targetFolder, 'Activities')
-										writeFile({ folder: activitiesFolder, from: 'MainActivity.hbs', to: 'MainActivity.swift', payload: hbsSourcePayload })
+										writeFile({ folder: activitiesFolder, from: 'BasicMainActivity.hbs', to: 'MainActivity.swift', payload: hbsSourcePayload })
 										break
 									}
 									case 'bottom-nav': {
-										writeFile({ from: 'App.hbs', to: 'App.swift', payload: { name: name, activities: ['Main'] } })
+										writeFile({ from: 'App.hbs', to: 'App.swift', payload: { name: name, activities: ['Main'], fragments: ['Dashboard', 'Home', 'Notifications'], theme: 'material3DayNightNoActionBar' } })
 										const activitiesFolder = createSubfolderIfNeeded(targetFolder, 'Activities')
-										writeFile({ folder: activitiesFolder, from: 'MainActivity.hbs', to: 'MainActivity.swift', payload: hbsSourcePayload })
+										writeFile({ folder: activitiesFolder, from: 'BottomNavMainActivity.hbs', to: 'MainActivity.swift', payload: hbsSourcePayload })
+										const fragmentsFolder = createSubfolderIfNeeded(targetFolder, 'Fragments')
+										writeFile({ folder: fragmentsFolder, from: 'DashboardFragment.hbs', to: 'DashboardFragment.swift', payload: hbsSourcePayload })
+										writeFile({ folder: fragmentsFolder, from: 'HomeFragment.hbs', to: 'HomeFragment.swift', payload: hbsSourcePayload })
+										writeFile({ folder: fragmentsFolder, from: 'NotificationsFragment.hbs', to: 'NotificationsFragment.swift', payload: hbsSourcePayload })
 										break
 									}
 									default: break

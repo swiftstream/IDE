@@ -75,7 +75,13 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
             })
             buildStatus(`\`metadata\` swift target: building`)
             const metadataMeasure = new TimeMeasure()
-            await stream.swift.androidBuildMetadata({ release: release })
+            await stream.swift.androidBuildMetadata({
+                release: release,
+                abortHandler: abortHandler,
+                progressHandler: (p) => {
+                    buildStatus(`metadata swift target: building ${p}`)
+                }
+            })
             metadataMeasure.finish()
             if (abortHandler.isCancelled) return
             print(`🧱 Built metadata swift target in ${metadataMeasure.fulltime}`, LogLevel.Detailed)
@@ -196,7 +202,18 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
                 streamConfig: streamConfig,
                 activityBodies: activityBodies
             })
+            const fragmentBodies = await stream.swift.androidGetAllFragmentBodies({ release: release })
+            AndroidLibraryProject.proceedFragmentBodies(stream, {
+                projectPath: projectDirectory!,
+                streamConfig: streamConfig,
+                fragmentBodies: fragmentBodies
+            })
+            // TODO: Check if appui is added in dependencies, if not then just write a warning: appui missing, ad it manually the following way
+            // check if the following present in Application/settings.gradle.kts:
+            // include(":appui")
+            // project(":appui").projectDir = file("../Library/appui")
         }
+        let preparedGradleWrapper = false
         if (streamConfig.config.packageMode == PackageMode.App && !stream.gradle(GradleFolder.Application).wrapper.isExists()) {
             print(`🧱 Preparing gradle wrapper`, LogLevel.Detailed)
             buildStatus(`preparing gradle wrapper`)
@@ -209,6 +226,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
             gradlewMeasure.finish()
             if (abortHandler.isCancelled) return
             print(`🧱 Prepared gradle wrapper in ${gradlewMeasure.fulltime}`, LogLevel.Detailed)
+            preparedGradleWrapper = true
         } else if (streamConfig.config.packageMode == PackageMode.Library && !stream.gradle(GradleFolder.Library).wrapper.isExists()) {
             print(`🧱 Preparing gradle wrapper`, LogLevel.Detailed)
             buildStatus(`preparing gradle wrapper`)
@@ -221,11 +239,12 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
             gradlewMeasure.finish()
             if (abortHandler.isCancelled) return
             print(`🧱 Prepared gradle wrapper in ${gradlewMeasure.fulltime}`, LogLevel.Detailed)
+            preparedGradleWrapper = true
         }
         measure.finish()
         if (abortHandler.isCancelled) return
         status('check', `Build Succeeded in ${measure.fulltime}`, StatusType.Success)
-        print(`✅ Build Succeeded in ${measure.fulltime}`)
+        print(`✅ Build Succeeded in ${measure.fulltime}`, LogLevel.Normal, preparedGradleWrapper)
         console.log(`Build Succeeded in ${measure.fulltime}`)
         stream.setBuildingDebug(false)
         sidebarTreeView?.refresh()
@@ -258,59 +277,60 @@ interface HotRebuildSwiftParams {
 let awaitingHotRebuildSwift: HotRebuildSwiftParams[] = []
 
 export async function hotRebuildSwift(stream: AndroidStream, params: HotRebuildSwiftParams) {
-    if (isBuildingDebug || isHotBuildingSwift) {
-        if (!isBuildingDebug) {
-            if (awaitingHotRebuildSwift.filter((x) => x.target == params.target).length == 0) {
-                print(`👉 Delay Swift hot rebuild call`, LogLevel.Verbose)
-                awaitingHotRebuildSwift.push(params)
-            }
-        }
-        return
-    }
-    const measure = new TimeMeasure()
-    const abortHandler = stream.setAbortBuildingDebugHandler(() => {
-        measure.finish()
-        status('circle-slash', `Aborted Hot Rebuilt Swift after ${measure.fulltime}`, StatusType.Success)
-        print(`🚫 Aborted Hot Rebuilt Swift after ${measure.fulltime}`)
-        console.log(`Aborted Hot Rebuilt Swift after ${measure.fulltime}`)
-        stream.setBuildingDebug(false)
-        stream.setHotBuildingSwift(false)
-        sidebarTreeView?.refresh()
-    })
-    stream.setBuildingDebug(true)
-    stream.setHotBuildingSwift(true)
-    sidebarTreeView?.cleanupErrors()
-    sidebarTreeView?.refresh()
-    print('🔥 Hot Rebuilding Swift', LogLevel.Detailed)
-    try {
+    // TODO: implement hot rebuilding for Android
+    // if (isBuildingDebug || isHotBuildingSwift) {
+    //     if (!isBuildingDebug) {
+    //         if (awaitingHotRebuildSwift.filter((x) => x.target == params.target).length == 0) {
+    //             print(`👉 Delay Swift hot rebuild call`, LogLevel.Verbose)
+    //             awaitingHotRebuildSwift.push(params)
+    //         }
+    //     }
+    //     return
+    // }
+    // const measure = new TimeMeasure()
+    // const abortHandler = stream.setAbortBuildingDebugHandler(() => {
+    //     measure.finish()
+    //     status('circle-slash', `Aborted Hot Rebuilt Swift after ${measure.fulltime}`, StatusType.Success)
+    //     print(`🚫 Aborted Hot Rebuilt Swift after ${measure.fulltime}`)
+    //     console.log(`Aborted Hot Rebuilt Swift after ${measure.fulltime}`)
+    //     stream.setBuildingDebug(false)
+    //     stream.setHotBuildingSwift(false)
+    //     sidebarTreeView?.refresh()
+    // })
+    // stream.setBuildingDebug(true)
+    // stream.setHotBuildingSwift(true)
+    // sidebarTreeView?.cleanupErrors()
+    // sidebarTreeView?.refresh()
+    // print('🔥 Hot Rebuilding Swift', LogLevel.Detailed)
+    // try {
         
-        measure.finish()
-        if (abortHandler.isCancelled) return
-        status('flame', `Hot Rebuilt Swift in ${measure.fulltime}`, StatusType.Success)
-        print(`🔥 Hot Rebuilt Swift in ${measure.fulltime}`)
-        console.log(`Hot Rebuilt Swift in ${measure.fulltime}`)
-        stream.setBuildingDebug(false)
-        stream.setHotBuildingSwift(false)
-        sidebarTreeView?.refresh()
-        const awaitingParams = awaitingHotRebuildSwift.pop()
-        if (awaitingParams) {
-            print(`👉 Passing to delayed Swift hot rebuild call`, LogLevel.Verbose)
-            hotRebuildSwift(stream, awaitingParams)
-        }
-    } catch (error) {
-        awaitingHotRebuildSwift = []
-        stream.setBuildingDebug(false)
-        stream.setHotBuildingSwift(false)
-        sidebarTreeView?.refresh()
-        const text = `Hot Rebuild Swift Failed`
-        if (isString(error)) {
-            print(`🧯 ${error}`)
-        } else {
-            const json = JSON.stringify(error)
-            const errorText = `${json === '{}' ? error : json}`
-            print(`🧯 ${text}: ${errorText}`)
-            console.error(error)
-        }
-        status('error', `${text} (${measure.fulltime})`, StatusType.Error)
-    }
+    //     measure.finish()
+    //     if (abortHandler.isCancelled) return
+    //     status('flame', `Hot Rebuilt Swift in ${measure.fulltime}`, StatusType.Success)
+    //     print(`🔥 Hot Rebuilt Swift in ${measure.fulltime}`)
+    //     console.log(`Hot Rebuilt Swift in ${measure.fulltime}`)
+    //     stream.setBuildingDebug(false)
+    //     stream.setHotBuildingSwift(false)
+    //     sidebarTreeView?.refresh()
+    //     const awaitingParams = awaitingHotRebuildSwift.pop()
+    //     if (awaitingParams) {
+    //         print(`👉 Passing to delayed Swift hot rebuild call`, LogLevel.Verbose)
+    //         hotRebuildSwift(stream, awaitingParams)
+    //     }
+    // } catch (error) {
+    //     awaitingHotRebuildSwift = []
+    //     stream.setBuildingDebug(false)
+    //     stream.setHotBuildingSwift(false)
+    //     sidebarTreeView?.refresh()
+    //     const text = `Hot Rebuild Swift Failed`
+    //     if (isString(error)) {
+    //         print(`🧯 ${error}`)
+    //     } else {
+    //         const json = JSON.stringify(error)
+    //         const errorText = `${json === '{}' ? error : json}`
+    //         print(`🧯 ${text}: ${errorText}`)
+    //         console.error(error)
+    //     }
+    //     status('error', `${text} (${measure.fulltime})`, StatusType.Error)
+    // }
 }

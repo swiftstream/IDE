@@ -373,6 +373,8 @@ const copyDevContainerFiles = async (projectDirectory: string, stream: Extension
 			if (!branch) return false
 			options['embedded'] = { branch: branch }
 			break
+		case ExtensionStream.Android:
+			break
 		default: break
 	}
 	if (!generateAndWriteDevcontainerJson(
@@ -400,7 +402,7 @@ const askProjectTypeAndCopyDevcontainerFiles = async (projectDirectory: string):
 		const v = x.toLowerCase()
 		return v.charAt(0).toUpperCase() + v.slice(1)
 	})
-	.filter((x) => !['Android', 'Unknown'].includes(x)) // TODO: edit to enable android
+	.filter((x) => !['Unknown'].includes(x))
 	const selectedItem = await window.showQuickPick(items, {
 		placeHolder: `Select type of your project`
 	})

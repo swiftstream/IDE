@@ -10,6 +10,8 @@ import { LogLevel, print } from './streams/stream'
 export class AndroidStreamConfig {
     static defaultPath(options: { projectPath: string }): string { return `${options.projectPath}/.vscode/android-stream.json` }
 
+    public static DroidPackage = 'stream.swift.droid'
+
     public static transaction(options: {
         projectPath: string,
         process: (config: AndroidStreamConfig) => void
@@ -51,11 +53,15 @@ export class AndroidStreamConfig {
         x.config.packageMode = options.packageMode
         x.config.schemes = [{
             title: `${options.projectName} Debug`,
-            swiftTargets: [options.projectName],
+            swiftTargets: [
+                options.packageMode === PackageMode.App ? "AppUI" : options.projectName
+            ],
             buildConfiguration: SchemeBuildConfiguration.Debug
         }, {
             title: `${options.projectName} Release`,
-            swiftTargets: [options.projectName],
+            swiftTargets: [
+                options.packageMode === PackageMode.App ? "AppUI" : options.projectName
+            ],
             buildConfiguration: SchemeBuildConfiguration.Release
         }]
         x.save()
@@ -379,7 +385,12 @@ export async function chooseScheme(options: {
         AndroidStreamConfig.transaction({
             projectPath: options.projectPath,
             process: (x) => {
-                x.config?.schemes?.push(newScheme)
+                if (x.config?.schemes) {
+                    x.config?.schemes?.push(newScheme)
+                } else {
+                    x.config!.schemes = []
+                    x.config?.schemes?.push(newScheme)
+                }
                 x.setSelectedScheme(newScheme)
                 sidebarTreeView?.refresh()
             }

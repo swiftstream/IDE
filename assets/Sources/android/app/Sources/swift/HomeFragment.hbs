@@ -1,0 +1,19 @@
+import Droid
+
+final class HomeFragment: Fragment {
+    override func buildUI() {
+        super.buildUI()
+        body {
+            RelativeLayout{
+                TextView("Home")
+                    .width(.wrapContent)
+                    .height(.wrapContent)
+                    .centerVertical()
+                    .centerHorizontal()
+            }
+            .backgroundColor(.red)
+            .width(.matchParent)
+            .height(.matchParent)
+        }
+    }
+}
