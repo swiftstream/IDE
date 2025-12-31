@@ -48,7 +48,7 @@ export async function buildCommand(webStream: WebStream, mode: WebBuildMode) {
     sidebarTreeView?.refresh()
 	try {
 		print(`🏗️ Started building debug`, LogLevel.Normal, true)
-		print(`💁‍♂️ it will try to build each phase`, LogLevel.Detailed)
+		print(`💁‍♂️ it will try to build each phase`, LogLevel.Verbose)
 		wsSendBuildProgress(1)
 		// Phase 1: Resolve Swift dependencies for each build type
 		print('🔳 Phase 1: Resolve Swift dependencies for each build type', LogLevel.Verbose)

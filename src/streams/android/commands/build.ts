@@ -32,7 +32,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
     sidebarTreeView?.refresh()
     try {
         print(`🏗️ Started building debug`, LogLevel.Normal, true)
-		print(`💁‍♂️ it will try to build each phase`, LogLevel.Detailed)
+		print(`💁‍♂️ it will try to build each phase`, LogLevel.Verbose)
         const targets = await stream.swift.getLibraryProducts({
             fresh: true,
             abortHandler: abortHandler

@@ -41,7 +41,7 @@ export async function buildReleaseCommand(webStream: WebStream, mode: WebBuildMo
     sidebarTreeView?.refresh()
 	try {
 		print(`🏗️ Started building release`, LogLevel.Normal, true)
-		print(`💁‍♂️ it will try to build each phase`, LogLevel.Detailed)
+		print(`💁‍♂️ it will try to build each phase`, LogLevel.Verbose)
 		// Phase 0: Remove DistPublic folder
 		print('🔳 Phase 0: Remove DistPublic folder', LogLevel.Verbose)
 		const destPath = `${projectDirectory}/${buildProdFolder}`
