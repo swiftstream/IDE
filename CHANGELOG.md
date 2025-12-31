@@ -1,4 +1,7 @@
 # Changelog
+## [1.17.0] - 2025-12-31
+### Added
+- Android stream: application development mode with three templates
 ## [1.16.3] - 2025-12-10
 ### Changed
 - Updated link to Swift 6.2.1 in `toolchains.json`
