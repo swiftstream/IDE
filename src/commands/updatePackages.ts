@@ -2,6 +2,7 @@ import { currentStream, sidebarTreeView } from '../extension'
 import { buildStatus, isUpdatingPackages, LogLevel, print, status, StatusType } from '../streams/stream'
 import { updateSwiftDependencies } from './build/updateSwiftDependencies'
 import { TimeMeasure } from '../helpers/timeMeasureHelper'
+import { restartLSPCommand } from './restartLSP'
 
 export async function updatePackagesCommand() {
     if (isUpdatingPackages) return
@@ -26,4 +27,5 @@ export async function updatePackagesCommand() {
     status('check', `Updated Packages in ${measure.fulltime}`, StatusType.Success)
     await new Promise((x) => setTimeout(x, 1000))
     currentStream?.setUpdatingPackages(false)
+    restartLSPCommand()
 }
