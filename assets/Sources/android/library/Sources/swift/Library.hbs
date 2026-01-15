@@ -60,7 +60,7 @@ public func {{methodname}}(envPointer: UnsafeMutablePointer<JNIEnv?>, clazzRef: 
     // Defer block to clean up local references
     defer {
         // Release local ref to caller object
-        localEnv.deleteLocalRef(callerRef)
+        localEnv.deleteLocalRefPure(callerRef)
     }
     // Initialize `JObject` from boxed global reference to the caller object
     guard let callerObject = callerBox?.object() else { return }
@@ -110,7 +110,7 @@ public func sendIntArray(envPointer: UnsafeMutablePointer<JNIEnv?>, clazzRef: jo
     // Defer block to clean up local references
     defer {
         // Release local ref to array object
-        localEnv.deleteLocalRef(arrayRef)
+        localEnv.deleteLocalRefPure(arrayRef)
     }
     // Get array length
     logger.info("🔢 sendIntArray 1")
@@ -133,7 +133,7 @@ public func sendString(envPointer: UnsafeMutablePointer<JNIEnv?>, clazzRef: jobj
     // Defer block to clean up local references
     defer {
         // Release local ref to string object
-        localEnv.deleteLocalRef(strRef)
+        localEnv.deleteLocalRefPure(strRef)
     }
     // Wrap JNI string reference into `JString` and get Swift string
     logger.info("✍️ sendString 1")
@@ -155,7 +155,7 @@ public func sendDate(envPointer: UnsafeMutablePointer<JNIEnv?>, clazzRef: jobjec
     // Defer block to clean up local references
     defer {
         // Release local ref to date object
-        localEnv.deleteLocalRef(dateRef)
+        localEnv.deleteLocalRefPure(dateRef)
     }
     // Wrap JNI date reference into `JObjectBox`
     logger.info("📅 sendDate 1")
@@ -217,7 +217,7 @@ public func fetchAsyncData(env: UnsafeMutablePointer<JNIEnv>, obj: jobject) -> j
 @_cdecl("Java_{{namespace}}_{{kotlinclassname}}_fetchAsyncDataWithCallback")
 public func fetchAsyncDataWithCallback(env: UnsafeMutablePointer<JNIEnv?>, obj: jobject, callback: jobject) {
     let env = JEnv(env)
-    defer { env.deleteLocalRef(callback) }
+    defer { env.deleteLocalRefPure(callback) }
     guard let object = callback.box(env)?.object() else { return }
     Task {
         // Simulate async operation
