@@ -1,4 +1,7 @@
 # Changelog
+## [1.17.1] - 2026-01-15
+### Changed
+- Fixed Android Library template by switching to `deleteLocalRefPure`, thanks to @JarWarren
 ## [1.17.0] - 2025-12-31
 ### Added
 - Android stream: application development mode with three templates
