@@ -143,7 +143,7 @@ export class SidebarTreeView implements TreeDataProvider<Dependency> {
 				}
 			})
 			extensionContext.subscriptions.push(command)
-			this.errorCommands.push(command)
+			this.mountCommands.push(command)
 		}
 		return new Dependency({
 			id: SideTreeItem.Mounts,
