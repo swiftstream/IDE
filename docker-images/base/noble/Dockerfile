@@ -8,7 +8,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV S_TOOLCHAIN_PLATFORM="ubuntu24.04"
 
 # Image version, should be increased with any major change
-ENV S_IMAGE_VERSION=100
+ENV S_IMAGE_VERSION=101
 
 # update packages
 RUN apt update && apt upgrade -y \
@@ -20,4 +20,4 @@ RUN apt update && apt upgrade -y \
     libz3-dev pkg-config tzdata uuid-dev \
     zlib1g-dev curl \
 # install cmd.sh related required dependencies
-    unzip wget pv
+    unzip wget pv zip

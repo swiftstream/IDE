@@ -144,13 +144,13 @@ async function createNewProjectFiles(
 				if (!generateAndWriteDevcontainerJson(
 					devContainerPath,
 					ExtensionStream.Web,
-					{ major: 5, minor: 10 } // TODO: Switch to Swift 6
+					{ major: 6, minor: 3 }
 				)) return
 				const webType = selectedValues['web-type']
 				const webLibType = selectedValues['web-lib-type']
 				const webAppStyle = selectedValues['web-app-style']
 				// Copy devcontainer files
-				await copyDevContainerFile(`Dockerfile-${5}`, `Dockerfile`) // TODO: Switch to Swift 6
+				await copyDevContainerFile(`Dockerfile-${6}`, `Dockerfile`)
 				// Copy .gitignore
 				await copySourceFile(`.gitignore`)
 				var devContainerContent: string = fs.readFileSync(devContainerPath, 'utf8')
@@ -473,7 +473,7 @@ async function createNewProjectFiles(
 				fs.writeFileSync(osPath.join(wSourcesPath, 'package.json'), JSON.stringify(packageJson, null, '\t'))
 				// Create Package.swift
 				let payload = {
-					swiftToolsVersion: '5.10',
+					swiftToolsVersion: '6.3',
 					name: name,
 					platforms: '.macOS(.v10_15)',
 					products: products,
