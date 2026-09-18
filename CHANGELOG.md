@@ -1,4 +1,13 @@
 # Changelog
+## [1.18.0] - 2026-09-18
+### Added
+- Added Android support for official Swift 6.3.3 and Swift 6.4.0 toolchains.
+### Changed
+- Android builds now use toolchain-specific NDK, setup mode, and minimum API compatibility for Swift 6.3.3 and 6.4.0.
+- Android SourceKit and SwiftPM targets now follow the project's minimum Android API, with incompatible saved configurations rejected before SwiftPM work begins.
+- Android Swift output discovery now uses authoritative SwiftPM output paths and supports multi-product, multi-ABI packaging.
+- Android runtime library selection now follows the exact selected Swift version.
+- Retained older Android toolchain environment behavior remains supported.
 ## [1.17.1] - 2026-01-15
 ### Changed
 - Fixed Android Library template by switching to `deleteLocalRefPure`, thanks to @JarWarren
