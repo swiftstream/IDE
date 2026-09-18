@@ -30,7 +30,7 @@
     "minSDK": {
       "type": "integer",
       "description": "Minimum Android SDK version",
-      "minimum": 28,
+      "minimum": 23,
       "maximum": 35
     },
     "compileSDK": {
@@ -155,7 +155,7 @@
             ]
           },
           "swiftArgs": {
-            "description": "Optional Swift compiler arguments, either a global list or per-target mapping",
+            "description": "Optional additional non-structural Swift build/compiler/linker arguments, either a global list or per-target mapping. Android reserves structural toolchain, Swift-SDK selector/search-path, triple, configuration, build-path, product, target, build-system, and package-location options, including supported compatibility aliases.",
             "oneOf": [
               {
                 "type": "array",

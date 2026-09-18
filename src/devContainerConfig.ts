@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import JSON5 from 'json5'
 import { ExtensionStream, projectDirectory } from './extension'
-import { findTheRightToolchain } from './toolchain'
+import { findTheRightToolchain, getAndroidCompatibility } from './toolchain'
 
 export class DevContainerConfig {
     public static transaction(process: (config: DevContainerConfig) => void) {
@@ -48,8 +48,8 @@ export class DevContainerConfig {
     }
 
     public static getNDKVersion(): string {
-        const config = new DevContainerConfig()
-        return config.config.containerEnv.S_NDK_VERSION
+        const version = this.swiftVersion()
+        return getAndroidCompatibility(version).ndk
     }
 
     public static getEmbeddedBranch(): EmbeddedBranch {
@@ -327,12 +327,10 @@ export const generateDevcontainerJson = (
 			}
             devcontainerObject.containerEnv['S_ANDROID_VERSION'] = '24-0.1'
             devcontainerObject.containerEnv['S_GRADLE_VERSION'] = '8.14'
-            devcontainerObject.containerEnv['S_NDK_VERSION'] = (() => {
-                if (swiftVersion.major == 6 && swiftVersion.minor >= 2) {
-                    return 'r27d'
-                }
-                return 'r27c'
-            })()
+            const compatibility = getAndroidCompatibility(toolchain.version)
+            devcontainerObject.containerEnv['S_NDK_VERSION'] = compatibility.ndk
+            devcontainerObject.containerEnv['S_ANDROID_SDK_MIN_API'] = `${compatibility.min_api}`
+            devcontainerObject.containerEnv['S_ANDROID_SDK_SETUP'] = compatibility.sdk_setup
             devcontainerObject.containerEnv['S_SDK_VERSION'] = '35'
             devcontainerObject.mounts.push({ source: 'android', target: '/opt/android', type: 'volume' })
 			break

@@ -5,6 +5,20 @@ import { extensionContext, ExtensionStream, isInContainer, sidebarTreeView } fro
 import { Stream } from './streams/stream'
 import { isWin } from './helpers/filesHelper'
 
+export type AndroidSDKSetupMode = 'ndk-sysroot' | 'swiftbuild' | 'legacy'
+
+export interface AndroidCompatibility {
+    ndk: string
+    min_api: number
+    sdk_setup: AndroidSDKSetupMode
+}
+
+export interface SwiftSemanticVersion {
+    major: number
+    minor: number
+    patch: number
+}
+
 export var currentToolchain: string = `${getToolchainNameFromURL()}`
 export var pendingNewToolchain: string | undefined
 
@@ -71,6 +85,41 @@ export function getToolchainTags(stream: ExtensionStream): any[] {
     }
     const filtered = json[key]
     return filtered
+}
+
+export function validateAndroidCompatibility(value: unknown, version?: SwiftSemanticVersion): AndroidCompatibility {
+    const versionLabel = version ? ` for Swift ${version.major}.${version.minor}.${version.patch}` : ''
+    if (!value || typeof value !== 'object') {
+        throw new Error(`Android compatibility metadata is missing${versionLabel}`)
+    }
+
+    const compatibility = value as Record<string, unknown>
+    const ndk = compatibility.ndk
+    const minAPI = compatibility.min_api
+    const setup = compatibility.sdk_setup
+    if (typeof ndk !== 'string' || ndk.length == 0) {
+        throw new Error(`Android compatibility metadata has an invalid NDK${versionLabel}`)
+    }
+    if (typeof minAPI !== 'number' || !Number.isInteger(minAPI) || minAPI < 1) {
+        throw new Error(`Android compatibility metadata has an invalid minimum API${versionLabel}`)
+    }
+    if (setup !== 'ndk-sysroot' && setup !== 'swiftbuild' && setup !== 'legacy') {
+        throw new Error(`Android compatibility metadata has an invalid SDK setup mode${versionLabel}`)
+    }
+    return { ndk, min_api: minAPI, sdk_setup: setup }
+}
+
+export function getAndroidCompatibility(version: SwiftSemanticVersion): AndroidCompatibility {
+    const tag = getToolchainTags(ExtensionStream.Android).find((candidate) =>
+        candidate.name?.includes('-RELEASE') &&
+        candidate.version?.major === version.major &&
+        candidate.version?.minor === version.minor &&
+        candidate.version?.patch === version.patch
+    )
+    if (!tag) {
+        throw new Error(`Unsupported Android Swift toolchain ${version.major}.${version.minor}.${version.patch}`)
+    }
+    return validateAndroidCompatibility(tag.android_compatibility, version)
 }
 
 export function findTheRightToolchain(stream: ExtensionStream, swiftVersion: { major: number, minor: number }): {

@@ -3,11 +3,63 @@ import * as path from 'path'
 import Handlebars from 'handlebars'
 import { copyFile, readFile } from './helpers/filesHelper'
 import { LogLevel, print } from './streams/stream'
-import { AndroidStream, DroidBuildArch, droidBuildArchToSwiftBuildFolder } from './streams/android/androidStream'
+import { AndroidStream, DroidBuildArch } from './streams/android/androidStream'
 import { AndroidStreamConfig, PackageMode, Scheme, SoMode } from './androidStreamConfig'
 import { getToolchainsList } from './toolchain'
 import { DevContainerConfig } from './devContainerConfig'
 import { projectDirectory } from './extension'
+
+export interface AndroidABIProducts {
+    arch: DroidBuildArch
+    binPathByProduct: Record<string, string>
+    productPathByProduct: Record<string, string>
+}
+
+export function copyAuthoritativeAndroidProducts(options: {
+    projectPath: string
+    targets: string[]
+    archs: DroidBuildArch[]
+    buildResults: AndroidABIProducts[]
+}): void {
+    const resultsByArch = new Map(options.buildResults.map((result) => [result.arch, result]))
+    const retainedSourcePaths = new Map<string, string>()
+    for (const arch of options.archs) {
+        const abiProducts = resultsByArch.get(arch)
+        if (!abiProducts) throw new Error(`Missing authoritative Android build results for ABI ${arch}`)
+        const toFolders = new Map<string, string>()
+        for (const target of options.targets) {
+            toFolders.set(target, path.join(options.projectPath, 'Library', target.toLowerCase(), 'src', 'main', 'jniLibs', arch))
+        }
+        for (const target of options.targets) {
+            const sourcePath = abiProducts.productPathByProduct[target]
+            if (!sourcePath || !fs.existsSync(sourcePath)) {
+                throw new Error(`Authoritative source product missing for ${target}/${arch}: ${sourcePath ?? '(none)'}`)
+            }
+            const retainedBy = retainedSourcePaths.get(sourcePath)
+            if (retainedBy && retainedBy !== `${target}/${arch}`) {
+                throw new Error(`Authoritative Android product path collision: ${sourcePath} retained by ${retainedBy} and ${target}/${arch}`)
+            }
+            retainedSourcePaths.set(sourcePath, `${target}/${arch}`)
+        }
+        for (const target of options.targets) {
+            const toFolder = toFolders.get(target)!
+            const oldEntries = fs.readdirSync(toFolder, { withFileTypes: true })
+            const ownedNames = new Set(options.targets.map((name) => `lib${name}.so`))
+            for (const entry of oldEntries) {
+                if (entry.isFile() && ownedNames.has(entry.name)) {
+                    fs.unlinkSync(path.join(toFolder, entry.name))
+                }
+            }
+        }
+        for (const target of options.targets) {
+            const fromPath = abiProducts.productPathByProduct[target]
+            const toFolder = toFolders.get(target)!
+            const toPath = path.join(toFolder, `lib${target}.so`)
+            fs.cpSync(fromPath, toPath, { force: true })
+            if (!fs.existsSync(toPath)) throw new Error(`Destination product missing after copy for ${target}/${arch}: ${toPath}`)
+        }
+    }
+}
 
 export class AndroidLibraryProject {
     static generateIfNeeded(options: {
@@ -154,33 +206,18 @@ export class AndroidLibraryProject {
         targets: string[],
         archs: DroidBuildArch[],
         scheme: Scheme,
-        streamConfig: AndroidStreamConfig
+        streamConfig: AndroidStreamConfig,
+        buildResults: AndroidABIProducts[]
     }) {
         if (options.archs.length == 0) return
         const isLegacySDK = DevContainerConfig.checkIfLegacyAndroidSDK()
         // PART 1: copy target .so files
-        for (let a = 0; a < options.archs.length; a++) {
-            const arch = options.archs[a]
-            for (let i = 0; i < options.targets.length; i++) {
-                const target = options.targets[i]
-                const fromPath = path.join(droidBuildArchToSwiftBuildFolder({
-                    mode: arch,
-                    compileSDK: `${options.streamConfig.config.compileSDK}`
-                }), options.release ? 'release' : 'debug', `lib${target}.so`)
-                const toFolder = path.join(options.projectPath, 'Library', target.toLowerCase(), 'src', 'main', 'jniLibs', arch)
-                const oldEntries = fs.readdirSync(toFolder, { withFileTypes: true })
-                // - cleanup old .so files
-                for (const entry of oldEntries) {
-                    if (entry.isFile()) {
-                        const fullPath = path.join(toFolder, entry.name)
-                        fs.unlinkSync(fullPath)
-                    }
-                }
-                const toPath = path.join(toFolder, `lib${target}.so`)
-                fs.cpSync(fromPath, toPath, { force: true })
+        copyAuthoritativeAndroidProducts(options)
+        for (const arch of options.archs) {
+            for (const target of options.targets) {
                 print({
-                    verbose: `📑 Copied ${target}/.../${arch}/lib${target}.so`,
-                    unbearable: `📑 Copied ${toPath}`,
+                    verbose: `📑 Copied authoritative ${target}/.../${arch}/lib${target}.so`,
+                    unbearable: `📑 Copied ${path.join(options.projectPath, 'Library', target.toLowerCase(), 'src', 'main', 'jniLibs', arch, `lib${target}.so`)}`,
                 })
             }
         }

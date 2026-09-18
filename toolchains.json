@@ -4,6 +4,7 @@
             "name": "6.4.0-RELEASE",
             "version": { "major": 6, "minor": 4, "patch": 0 },
             "android_version": "24-0.1",
+			"android_compatibility": { "ndk": "r30", "min_api": 23, "sdk_setup": "swiftbuild" },
 			"toolchain_urls": {
                 "aarch64": "https://download.swift.org/swift-6.4.0-release/ubuntu2404-aarch64/swift-6.4.0-RELEASE/swift-6.4.0-RELEASE-ubuntu24.04-aarch64.tar.gz",
                 "x86_64": "https://download.swift.org/swift-6.4.0-release/ubuntu2404/swift-6.4.0-RELEASE/swift-6.4.0-RELEASE-ubuntu24.04.tar.gz"
@@ -14,6 +15,7 @@
             "name": "6.3.3-RELEASE",
             "version": { "major": 6, "minor": 3, "patch": 3 },
             "android_version": "24-0.1",
+			"android_compatibility": { "ndk": "r27d", "min_api": 28, "sdk_setup": "ndk-sysroot" },
 			"toolchain_urls": {
                 "aarch64": "https://download.swift.org/swift-6.3.3-release/ubuntu2404-aarch64/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE-ubuntu24.04-aarch64.tar.gz",
                 "x86_64": "https://download.swift.org/swift-6.3.3-release/ubuntu2404/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE-ubuntu24.04.tar.gz"
@@ -24,6 +26,7 @@
             "name": "6.2-RELEASE",
             "version": { "major": 6, "minor": 2, "patch": 0 },
             "android_version": "24-0.1",
+			"android_compatibility": { "ndk": "r27d", "min_api": 28, "sdk_setup": "ndk-sysroot" },
 			"toolchain_urls": {
                 "aarch64": "https://download.swift.org/swift-6.2-release/ubuntu2404-aarch64/swift-6.2-RELEASE/swift-6.2-RELEASE-ubuntu24.04-aarch64.tar.gz",
                 "x86_64": "https://download.swift.org/swift-6.2-release/ubuntu2404/swift-6.2-RELEASE/swift-6.2-RELEASE-ubuntu24.04.tar.gz"
@@ -34,6 +37,7 @@
             "name": "6.1.3-RELEASE",
             "version": { "major": 6, "minor": 1, "patch": 3 },
             "android_version": "24-0.1",
+			"android_compatibility": { "ndk": "r27c", "min_api": 28, "sdk_setup": "legacy" },
 			"toolchain_urls": {
                 "aarch64": "https://download.swift.org/swift-6.1.3-release/ubuntu2404-aarch64/swift-6.1.3-RELEASE/swift-6.1.3-RELEASE-ubuntu24.04-aarch64.tar.gz",
                 "x86_64": "https://download.swift.org/swift-6.1.3-release/ubuntu2404/swift-6.1.3-RELEASE/swift-6.1.3-RELEASE-ubuntu24.04.tar.gz"
@@ -44,6 +48,7 @@
             "name": "6.1.2-RELEASE",
             "version": { "major": 6, "minor": 1, "patch": 2 },
             "android_version": "24-0.1",
+			"android_compatibility": { "ndk": "r27c", "min_api": 28, "sdk_setup": "legacy" },
 			"toolchain_urls": {
                 "aarch64": "https://download.swift.org/swift-6.1.2-release/ubuntu2404-aarch64/swift-6.1.2-RELEASE/swift-6.1.2-RELEASE-ubuntu24.04-aarch64.tar.gz",
                 "x86_64": "https://download.swift.org/swift-6.1.2-release/ubuntu2404/swift-6.1.2-RELEASE/swift-6.1.2-RELEASE-ubuntu24.04.tar.gz"
@@ -54,6 +59,7 @@
             "name": "6.1-RELEASE",
             "version": { "major": 6, "minor": 1, "patch": 0 },
 			"android_version": "24-0.1",
+			"android_compatibility": { "ndk": "r27c", "min_api": 28, "sdk_setup": "legacy" },
 			"toolchain_urls": {
                 "aarch64": "https://download.swift.org/swift-6.1-release/ubuntu2404-aarch64/swift-6.1-RELEASE/swift-6.1-RELEASE-ubuntu24.04-aarch64.tar.gz",
                 "x86_64": "https://download.swift.org/swift-6.1-release/ubuntu2404/swift-6.1-RELEASE/swift-6.1-RELEASE-ubuntu24.04.tar.gz"
@@ -64,6 +70,7 @@
             "name": "6.0.3-RELEASE",
             "version": { "major": 6, "minor": 0, "patch": 3 },
             "android_version": "24-0.1",
+			"android_compatibility": { "ndk": "r27c", "min_api": 28, "sdk_setup": "legacy" },
 			"toolchain_urls": {
                 "aarch64": "https://download.swift.org/swift-6.0.3-release/ubuntu2404-aarch64/swift-6.0.3-RELEASE/swift-6.0.3-RELEASE-ubuntu24.04-aarch64.tar.gz",
                 "x86_64": "https://download.swift.org/swift-6.0.3-release/ubuntu2404/swift-6.0.3-RELEASE/swift-6.0.3-RELEASE-ubuntu24.04.tar.gz"
@@ -74,6 +81,7 @@
             "name": "6.0.1-RELEASE",
             "version": { "major": 6, "minor": 0, "patch": 1 },
             "android_version": "24-0.1",
+			"android_compatibility": { "ndk": "r27c", "min_api": 28, "sdk_setup": "legacy" },
 			"toolchain_urls": {
                 "aarch64": "https://download.swift.org/swift-6.0.1-release/ubuntu2404-aarch64/swift-6.0.1-RELEASE/swift-6.0.1-RELEASE-ubuntu24.04-aarch64.tar.gz",
                 "x86_64": "https://download.swift.org/swift-6.0.1-release/ubuntu2404/swift-6.0.1-RELEASE/swift-6.0.1-RELEASE-ubuntu24.04.tar.gz"

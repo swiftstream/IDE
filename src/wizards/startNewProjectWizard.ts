@@ -13,6 +13,7 @@ import { copyFile, readFile } from '../helpers/filesHelper'
 import { openProject } from '../helpers/openProject'
 import { DevContainerConfig, EmbeddedBranch, generateAndWriteDevcontainerJson } from '../devContainerConfig'
 import { AndroidStreamConfig, PackageMode } from '../androidStreamConfig'
+import { getAndroidCompatibility } from '../toolchain'
 
 let webViewPanel: WebviewPanel | undefined
 const isWin = process.platform == 'win32'
@@ -682,7 +683,8 @@ async function createNewProjectFiles(
 				const config = await AndroidStreamConfig.createInitialConfig({
 					projectPath: path,
 					projectName: name,
-					packageMode: androidType == 'app' ? PackageMode.App : PackageMode.Library
+					packageMode: androidType == 'app' ? PackageMode.App : PackageMode.Library,
+					androidMinAPIFloor: getAndroidCompatibility({ ...defaultSwiftVersion, patch: 0 }).min_api
 				})
 				if (!config) {
 					webViewPanel?.webview.postMessage({ type: 'creatingFailed', data: {} })
@@ -840,20 +842,6 @@ async function createNewProjectFiles(
 						Handlebars.compile(readFile(osPath.join('assets', 'Sources', 'Package.hbs')))(packagePayload)
 					)
 				}
-				const sourcekitLSPFolder = osPath.join(path, '.sourcekit-lsp')
-				if (!fs.existsSync(sourcekitLSPFolder)) {
-					fs.mkdirSync(sourcekitLSPFolder)
-				}
-				let sourcekitLSPConfig = {
-					swiftPM: {
-						configuration: 'debug',
-						swiftSDK: `aarch64-unknown-linux-android${config.compileSDK}`
-					}
-				}
-				fs.writeFileSync(
-					osPath.join(sourcekitLSPFolder, 'config.json'),
-					JSON.stringify(sourcekitLSPConfig, null, '\t')
-				)
 				// Copy devcontainer files
 				await copyDevContainerFile(`Dockerfile`)
 				// Copy .gitignore

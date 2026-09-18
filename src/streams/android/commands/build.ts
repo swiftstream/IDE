@@ -1,5 +1,5 @@
 import { window } from 'vscode'
-import { AndroidLibraryProject } from '../../../androidLibraryProject'
+import { AndroidABIProducts, AndroidLibraryProject } from '../../../androidLibraryProject'
 import { AndroidStreamConfig, PackageMode, Scheme, SchemeBuildConfiguration } from '../../../androidStreamConfig'
 import { resolveSwiftDependencies } from '../../../commands/build/resolveSwiftDependencies'
 import { restartLSPCommand } from '../../../commands/restartLSP'
@@ -18,6 +18,12 @@ let hasRestartedLSP = false
 
 export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
     if (isBuildingDebug || stream.isAnyHotBuilding()) { return }
+    if (!await AndroidStreamConfig.initializeConfigIfNeeded({
+        projectPath: projectDirectory!,
+        stream
+    })) {
+        return
+    }
     const measure = new TimeMeasure()
     const abortHandler = stream.setAbortBuildingDebugHandler(() => {
         measure.finish()
@@ -88,29 +94,42 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
             clearStatus()
         }
         // Phase 4: Build executable targets
+        const selectedSwiftArgs = Array.isArray(scheme.swiftArgs)
+            ? scheme.swiftArgs
+            : scheme.swiftArgs?.[stream.swift.selectedDebugTarget] ?? []
         const shouldRestartLSP = !hasRestartedLSP || !stream.isDebugBuilt({
             target: stream.swift.selectedDebugTarget,
             arch: DroidBuildArch.Arm64,
-            androidSDKCompileVersion: `${streamConfig.config.compileSDK}`
+            androidTargetAPI: `${streamConfig.config.minSDK}`,
+            swiftArgs: selectedSwiftArgs
         })
         phase += 1
         print(`🔳 Phase ${phase}: Build executable targets`, LogLevel.Verbose)
         // Only one for current device, or all without device
         const archs = stream.currentBuildArch ? [stream.currentBuildArch] : [DroidBuildArch.Arm64, DroidBuildArch.ArmEabi, DroidBuildArch.x86_64]
+        const buildResults: AndroidABIProducts[] = []
         for (let i = 0; i < archs.length; i++) {
 			const arch = archs[i]
-            await buildExecutableTarget({
-                type: SwiftBuildType.Droid,
-                target: stream.swift.selectedDebugTarget,
-                arch: arch,
-                release: release,
-                swiftArgs: scheme.swiftArgs,
-                androidSDKCompileVersion: `${streamConfig.config.compileSDK}`,
-                androidDroidLogs: stream.isDroidLogsEnabled,
-                androidJNILogs: stream.isJNILogsEnabled,
-                force: true,
-                abortHandler: abortHandler
-            })
+            const binPathByProduct: Record<string, string> = {}
+            const productPathByProduct: Record<string, string> = {}
+            for (const target of targets) {
+                const result = await buildExecutableTarget({
+                    type: SwiftBuildType.Droid,
+                    target: target,
+                    arch: arch,
+                    release: release,
+                    swiftArgs: scheme.swiftArgs,
+                    androidTargetAPI: `${streamConfig.config.minSDK}`,
+                    androidDroidLogs: stream.isDroidLogsEnabled,
+                    androidJNILogs: stream.isJNILogsEnabled,
+                    force: true,
+                    abortHandler: abortHandler
+                })
+                if (!result) throw new Error(`Missing authoritative build result for ${target}/${arch}`)
+                binPathByProduct[target] = result.binPath
+                productPathByProduct[target] = result.productPath
+            }
+            buildResults.push({ arch, binPathByProduct, productPathByProduct })
         }
         // Phase 5: Create or repair Library project
         const swiftVersion = DevContainerConfig.swiftVersion()
@@ -154,7 +173,8 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
             targets: targets,
             archs: archs,
             scheme: scheme,
-            streamConfig: streamConfig
+            streamConfig: streamConfig,
+            buildResults: buildResults
         })
         // Phase 8: Proceed .so files
         phase += 1

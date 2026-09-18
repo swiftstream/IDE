@@ -2,8 +2,9 @@ import * as fs from 'fs'
 import JSON5 from 'json5'
 import { ProgressLocation, window } from 'vscode'
 import { extensionStream, ExtensionStream, projectDirectory } from '../extension'
-import { currentToolchain, getToolchainNameFromURL, getToolchainTags, pendingNewToolchain, setPendingNewToolchain } from '../toolchain'
+import { currentToolchain, getAndroidCompatibility, getToolchainNameFromURL, getToolchainTags, pendingNewToolchain, setPendingNewToolchain } from '../toolchain'
 import { env } from 'process'
+import { AndroidStreamConfig } from '../androidStreamConfig'
 
 export async function getPureArtifactURLForToolchain(): Promise<string | undefined> {
     const result = await fetchCurrentToolchainMetadata(ExtensionStream.Pure)
@@ -123,17 +124,24 @@ export async function toolchainCommand(selectedType?: string) {
 				}
 			} else if (extensionStream == ExtensionStream.Android) {
                 devContainerJson.containerEnv.S_ARTIFACT_ANDROID_URL = selectedTag.artifact_url
-				if (selectedTag.version.major === 6 && selectedTag.version.minor >= 2) {
-					devContainerJson.containerEnv.S_NDK_VERSION = 'r27d'
-				} else {
-					devContainerJson.containerEnv.S_NDK_VERSION = 'r27c'
-				}
+				const compatibility = getAndroidCompatibility(selectedTag.version)
+				devContainerJson.containerEnv.S_NDK_VERSION = compatibility.ndk
+				devContainerJson.containerEnv.S_ANDROID_SDK_MIN_API = `${compatibility.min_api}`
+				devContainerJson.containerEnv.S_ANDROID_SDK_SETUP = compatibility.sdk_setup
             } else if (extensionStream == ExtensionStream.Pure || extensionStream == ExtensionStream.Server) {
                 devContainerJson.containerEnv.S_ARTIFACT_STATIC_LINUX_URL = selectedTag.artifact_url
             }
 			devContainerJson.customizations.vscode.settings['swift.path'] = `/swift/toolchains/${newName}/usr/bin`
 			devContainerJson.customizations.vscode.settings['lldb.library'] = `/swift/toolchains/${newName}/usr/lib/liblldb.so`
 			fs.writeFileSync(devContainerPath, JSON.stringify(devContainerJson, null, '\t'))
+			if (extensionStream == ExtensionStream.Android) {
+				const sourceKitResult = AndroidStreamConfig.synchronizeSourceKitConfig({
+					projectPath: projectDirectory!,
+					minSDK: new AndroidStreamConfig({ projectPath: projectDirectory! }).config.minSDK,
+					compatibility: getAndroidCompatibility(selectedTag.version)
+				})
+				if (!sourceKitResult.compatible) await window.showErrorMessage(sourceKitResult.error!.message)
+			}
 			setPendingNewToolchain(newName)
 			// TODO: check if toolchain is already in the folder; or
 			// TODO: ask if would like to download it now

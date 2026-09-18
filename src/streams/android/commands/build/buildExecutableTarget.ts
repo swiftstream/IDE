@@ -14,7 +14,7 @@ export async function buildExecutableTarget(options: {
     release: boolean,
     force: boolean,
     swiftArgs?: string[] | Record<string, string[]>,
-    androidSDKCompileVersion: string,
+    androidTargetAPI: string,
     androidDroidLogs: boolean,
     androidJNILogs: boolean,
     abortHandler: AbortHandler
@@ -42,13 +42,13 @@ export async function buildExecutableTarget(options: {
     })
     buildStatus(`\`${options.target}\` swift target: building`)
     try {
-        await buildSwiftTarget({
+        const buildResult = await buildSwiftTarget({
             type: options.type ?? SwiftBuildType.Native,
             mode: droidBuildArchToSwiftBuildMode(options.arch),
             targetName: options.target,
             release: options.release,
             swiftArgs: swiftArgs,
-            androidSDKCompileVersion: options.androidSDKCompileVersion,
+            androidTargetAPI: options.androidTargetAPI,
             androidDroidLogs: options.androidDroidLogs,
             androidJNILogs: options.androidJNILogs,
             abortHandler: options.abortHandler,
@@ -64,6 +64,7 @@ export async function buildExecutableTarget(options: {
             detailed: `🧱 Built \`${options.target}\` swift target ${options.type ? `for \`.${options.type}\` ` : ''}in ${measure.fulltime}`,
             verbose: `🧱 Built swift target ${options.type ? `for \`.${options.type}\` ` : ''}in ${options.release ? 'release' : 'debug'} mode in ${measure.fulltime}`
         })
+        return buildResult
     } catch (error) {
         clearStatus()
         throw error

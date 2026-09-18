@@ -5,7 +5,7 @@ import { commands, ConfigurationChangeEvent, FileDeleteEvent, FileRenameEvent, T
 import { isBuildingDebug, LogLevel, print, Stream } from '../stream'
 import { Dependency, SideTreeItem } from '../../sidebarTreeView'
 import { extensionContext, isInContainer, projectDirectory, sidebarTreeView } from '../../extension'
-import { pathToCompiledBinary, Swift, SwiftBuildMode } from '../../swift'
+import { AndroidBuildResult, androidBuildIdentityKey, makeAndroidBuildIdentity, Swift, SwiftBuildMode } from '../../swift'
 import { buildCommand, hotRebuildSwift } from './commands/build'
 import { ReadElf } from '../../readelf'
 import { AbortHandler } from '../../bash'
@@ -27,6 +27,7 @@ export class AndroidStream extends Stream {
     isGeneratingAppProject = false
     isDroidLogsEnabled = false
     isJNILogsEnabled = false
+    private successfulAndroidBuilds = new Map<string, AndroidBuildResult>()
 
     constructor(overrideConfigure: boolean = false) {
         super(true)
@@ -48,29 +49,50 @@ export class AndroidStream extends Stream {
     }
 
     isDebugBuilt(options: {
-        target: string,
+        target: string | undefined,
         arch: DroidBuildArch,
-        androidSDKCompileVersion: string
+        androidTargetAPI: string,
+        swiftArgs?: string[]
     }): boolean {
-        return fs.existsSync(pathToCompiledBinary({
-            target: options.target,
-            mode: droidBuildArchToSwiftBuildMode(options.arch),
-            release: false,
-            androidSDKCompileVersion: options.androidSDKCompileVersion
-        }))
+        return this.hasSuccessfulAndroidBuild({ ...options, release: false })
     }
     
     isReleaseBuilt(options: {
-        target: string,
+        target: string | undefined,
         arch: DroidBuildArch,
-        androidSDKCompileVersion: string
+        androidTargetAPI: string,
+        swiftArgs?: string[]
     }): boolean {
-        return fs.existsSync(pathToCompiledBinary({
-            target: options.target,
-            mode: droidBuildArchToSwiftBuildMode(options.arch),
-            release: true,
-            androidSDKCompileVersion: options.androidSDKCompileVersion
-        }))
+        return this.hasSuccessfulAndroidBuild({ ...options, release: true })
+    }
+
+    recordSuccessfulAndroidBuild(result: AndroidBuildResult): void {
+        this.successfulAndroidBuilds.set(androidBuildIdentityKey(result.identity), result)
+    }
+
+    private hasSuccessfulAndroidBuild(options: {
+        target: string | undefined,
+        arch: DroidBuildArch,
+        androidTargetAPI: string,
+        swiftArgs?: string[],
+        release: boolean
+    }): boolean {
+        if (!options.target) return false
+        try {
+            const targetAPI = Number.parseInt(options.androidTargetAPI, 10)
+            const identity = makeAndroidBuildIdentity({
+                mode: droidBuildArchToSwiftBuildMode(options.arch),
+                release: options.release,
+                targetName: options.target,
+                targetAPI,
+                swiftArgs: options.swiftArgs ?? [],
+                swiftVersion: DevContainerConfig.swiftVersion()
+            })
+            const result = this.successfulAndroidBuilds.get(androidBuildIdentityKey(identity))
+            return result !== undefined && fs.existsSync(result.productPath)
+        } catch (_) {
+            return false
+        }
     }
 
     registerCommands() {

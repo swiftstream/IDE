@@ -6,6 +6,13 @@ import { window } from 'vscode'
 import { AbortHandler } from './bash'
 import { AndroidStream } from './streams/android/androidStream'
 import { LogLevel, print } from './streams/stream'
+import { AndroidCompatibility, getAndroidCompatibility, SwiftSemanticVersion } from './toolchain'
+import { DevContainerConfig } from './devContainerConfig'
+
+export interface AndroidSourceKitSyncResult {
+    compatible: boolean
+    error?: Error
+}
 
 export class AndroidStreamConfig {
     static defaultPath(options: { projectPath: string }): string { return `${options.projectPath}/.vscode/android-stream.json` }
@@ -25,7 +32,8 @@ export class AndroidStreamConfig {
     public static async createInitialConfig(options: {
         projectPath: string,
         projectName: string,
-        packageMode: PackageMode
+        packageMode: PackageMode,
+        androidMinAPIFloor: number
     }): Promise<Config | undefined> {
         let x = new AndroidStreamConfig({ projectPath: options.projectPath })
         x.config.name = options.projectName
@@ -34,7 +42,7 @@ export class AndroidStreamConfig {
             return undefined
         } 
         x.config.packageName = packageName
-        const minSDK = await AndroidStreamConfig.askForMinSDK()
+        const minSDK = await AndroidStreamConfig.askForMinSDK(options.androidMinAPIFloor)
         if (!minSDK) {
             return undefined
         }
@@ -65,6 +73,14 @@ export class AndroidStreamConfig {
             buildConfiguration: SchemeBuildConfiguration.Release
         }]
         x.save()
+        const sourceKitResult = AndroidStreamConfig.synchronizeSourceKitConfig({
+            projectPath: options.projectPath,
+            minSDK: x.config.minSDK
+        })
+        if (!sourceKitResult.compatible) {
+            await window.showErrorMessage(sourceKitResult.error!.message)
+            return undefined
+        }
         return x.config
     }
 
@@ -77,13 +93,58 @@ export class AndroidStreamConfig {
         })
     }
 
-    static async askForMinSDK(): Promise<string | undefined> {
-        return await window.showQuickPick([
-            '28', '29', '30', '31', '32', '33', '34', '35'
-        ], {
+    static async askForMinSDK(minAPIFloor: number = 28): Promise<string | undefined> {
+        if (!Number.isInteger(minAPIFloor) || minAPIFloor < 23 || minAPIFloor > 35) {
+            throw new Error(`Invalid Android Swift SDK minimum API floor: ${minAPIFloor}`)
+        }
+        return await window.showQuickPick(Array.from({ length: 36 - minAPIFloor }, (_, index) => `${minAPIFloor + index}`), {
             title: 'Android Min SDK Version',
             placeHolder: `Choose Android Min SDK Version`
         })
+    }
+
+    public static synchronizeSourceKitConfig(options: {
+        projectPath: string,
+        minSDK: number,
+        compatibility?: AndroidCompatibility,
+        swiftVersion?: SwiftSemanticVersion
+    }): AndroidSourceKitSyncResult {
+        const swiftVersion = options.swiftVersion ?? DevContainerConfig.swiftVersion()
+        const compatibility = options.compatibility ?? getAndroidCompatibility(swiftVersion)
+        const requiredDescription = `Android Swift ${swiftVersion.major}.${swiftVersion.minor}.${swiftVersion.patch} requires project minSDK >= ${compatibility.min_api}; configured minSDK is ${options.minSDK}`
+        const sourceKitPath = path.join(options.projectPath, '.sourcekit-lsp', 'config.json')
+        const sourceKitExists = fs.existsSync(sourceKitPath)
+        let sourceKitConfig: Record<string, any> | undefined
+        if (sourceKitExists) {
+            sourceKitConfig = JSON5.parse(fs.readFileSync(sourceKitPath, 'utf8'))
+            if (!sourceKitConfig || typeof sourceKitConfig !== 'object' || Array.isArray(sourceKitConfig)) {
+                throw new Error(`Unable to preserve existing SourceKit-LSP configuration at ${sourceKitPath}`)
+            }
+            if (sourceKitConfig.swiftPM !== undefined && (!sourceKitConfig.swiftPM || typeof sourceKitConfig.swiftPM !== 'object' || Array.isArray(sourceKitConfig.swiftPM))) {
+                throw new Error(`Unable to preserve existing SourceKit-LSP swiftPM configuration at ${sourceKitPath}`)
+            }
+        }
+
+        if (options.minSDK < compatibility.min_api) {
+            if (sourceKitConfig && sourceKitConfig.swiftPM) {
+                if (Object.prototype.hasOwnProperty.call(sourceKitConfig.swiftPM, 'swiftSDK')) {
+                    delete sourceKitConfig.swiftPM.swiftSDK
+                    fs.writeFileSync(sourceKitPath, JSON.stringify(sourceKitConfig, null, '\t'), 'utf8')
+                }
+            }
+            return { compatible: false, error: new Error(requiredDescription) }
+        }
+
+        if (!sourceKitConfig) sourceKitConfig = {}
+        if (sourceKitConfig.swiftPM === undefined) {
+            sourceKitConfig.swiftPM = {}
+        } else if (!sourceKitConfig.swiftPM || typeof sourceKitConfig.swiftPM !== 'object' || Array.isArray(sourceKitConfig.swiftPM)) {
+            throw new Error(`Unable to preserve existing SourceKit-LSP swiftPM configuration at ${sourceKitPath}`)
+        }
+        sourceKitConfig.swiftPM.swiftSDK = `aarch64-unknown-linux-android${options.minSDK}`
+        if (!fs.existsSync(path.dirname(sourceKitPath))) fs.mkdirSync(path.dirname(sourceKitPath), { recursive: true })
+        fs.writeFileSync(sourceKitPath, JSON.stringify(sourceKitConfig, null, '\t'), 'utf8')
+        return { compatible: true }
     }
 
     static async askForCompileSDK(): Promise<string | undefined> {
@@ -113,6 +174,7 @@ export class AndroidStreamConfig {
         stream: AndroidStream
     }): Promise<boolean> {
         const configExists = AndroidStreamConfig.exists({ projectPath: options.projectPath })
+        const compatibility = getAndroidCompatibility(DevContainerConfig.swiftVersion())
         let x = new AndroidStreamConfig({ projectPath: options.projectPath })
         let startedInspection = false
         const startInspection = () => {
@@ -122,6 +184,17 @@ export class AndroidStreamConfig {
             }
         }
         if (!configExists) startInspection()
+        if (configExists && x.config.minSDK !== 0) {
+            const sourceKitResult = AndroidStreamConfig.synchronizeSourceKitConfig({
+                projectPath: options.projectPath,
+                minSDK: x.config.minSDK,
+                compatibility
+            })
+            if (!sourceKitResult.compatible) {
+                await window.showErrorMessage(sourceKitResult.error!.message)
+                return false
+            }
+        }
         if (!x.config.name) {
             startInspection()
             let swiftPackageName = ''
@@ -151,7 +224,7 @@ export class AndroidStreamConfig {
         }
         if (x.config.minSDK === 0) {
             startInspection()
-            const minSDK = await AndroidStreamConfig.askForMinSDK()
+            const minSDK = await AndroidStreamConfig.askForMinSDK(compatibility.min_api)
             if (!minSDK) {
                 return false
             }
@@ -203,6 +276,15 @@ export class AndroidStreamConfig {
             x.config.packageMode = packageMode.label === 'App' ? PackageMode.App : PackageMode.Library
         }
         x.save()
+        const sourceKitResult = AndroidStreamConfig.synchronizeSourceKitConfig({
+            projectPath: options.projectPath,
+            minSDK: x.config.minSDK,
+            compatibility
+        })
+        if (!sourceKitResult.compatible) {
+            await window.showErrorMessage(sourceKitResult.error!.message)
+            return false
+        }
         return true
     }
     

@@ -13,6 +13,105 @@ import { AbortHandler } from './bash'
 import { SwiftPackageDump } from './swiftPackageDump'
 import { DevContainerConfig } from './devContainerConfig'
 import { AndroidStreamConfig } from './androidStreamConfig'
+import { getAndroidCompatibility } from './toolchain'
+
+export interface AndroidBuildIdentity {
+    configuration: 'debug' | 'release'
+    buildPath: string
+    swiftSDK: string
+    swiftVersion: string
+    targetAPI: number
+    arch: string
+    productName: string
+    swiftArgs: string[]
+}
+
+export interface AndroidBuildResult {
+    identity: AndroidBuildIdentity
+    binPath: string
+    productPath: string
+}
+
+export function isAndroidBuildMode(mode: SwiftBuildMode): boolean {
+    return mode === SwiftBuildMode.AndroidArm64 || mode === SwiftBuildMode.AndroidArmEabi || mode === SwiftBuildMode.Androidx86_64
+}
+
+export function makeAndroidBuildIdentity(options: {
+    mode: SwiftBuildMode
+    release: boolean
+    targetName: string
+    targetAPI: number
+    swiftArgs: string[]
+    swiftVersion: { major: number, minor: number, patch: number }
+}): AndroidBuildIdentity {
+    const compatibility = getAndroidCompatibility(options.swiftVersion)
+    if (!Number.isInteger(options.targetAPI) || options.targetAPI < compatibility.min_api) {
+        throw new Error(`Project minSDK ${options.targetAPI} is incompatible with Swift ${options.swiftVersion.major}.${options.swiftVersion.minor}.${options.swiftVersion.patch}; required minimum API floor is ${compatibility.min_api}`)
+    }
+    const configuration = options.release ? 'release' : 'debug'
+    const arch = options.mode === SwiftBuildMode.AndroidArm64
+        ? 'arm64-v8a'
+        : options.mode === SwiftBuildMode.AndroidArmEabi
+            ? 'armeabi-v7a'
+            : 'x86_64'
+    const triplePrefix = options.mode === SwiftBuildMode.AndroidArm64
+        ? 'aarch64-unknown-linux-android'
+        : options.mode === SwiftBuildMode.AndroidArmEabi && compatibility.sdk_setup === 'legacy'
+            ? 'armv7-unknown-linux-androideabi'
+            : options.mode === SwiftBuildMode.AndroidArmEabi
+                ? 'armv7-unknown-linux-android'
+                : 'x86_64-unknown-linux-android'
+    return {
+        configuration,
+        buildPath: './.build/.droid',
+        swiftSDK: `${triplePrefix}${options.targetAPI}`,
+        swiftVersion: `${options.swiftVersion.major}.${options.swiftVersion.minor}.${options.swiftVersion.patch}`,
+        targetAPI: options.targetAPI,
+        arch,
+        productName: options.targetName,
+        swiftArgs: [...options.swiftArgs]
+    }
+}
+
+export function androidBuildIdentityKey(identity: AndroidBuildIdentity): string {
+    return JSON.stringify([
+        identity.swiftVersion,
+        identity.configuration,
+        identity.productName,
+        identity.arch,
+        identity.targetAPI,
+        identity.buildPath,
+        identity.swiftSDK,
+        identity.swiftArgs
+    ])
+}
+
+export function androidShowBinPathArgs(identity: AndroidBuildIdentity): string[] {
+    return [
+        'build', '--show-bin-path',
+        '-c', identity.configuration,
+        '--build-path', identity.buildPath,
+        '--swift-sdk', identity.swiftSDK
+    ]
+}
+
+export const reservedAndroidSwiftPMOptions = [
+    '-c', '--configuration', '--build-path', '--scratch-path', '-C', '--chdir',
+    '--package-path', '--swift-sdk', '--swift-sdks-path', '--experimental-swift-sdk',
+    '--experimental-swift-sdks-path', '--triple', '--destination', '--toolset', '--sdk',
+    '--toolchain', '--build-system', '--product', '--target', '--arch'
+]
+
+export function validateAndroidSwiftArgs(swiftArgs: string[]): void {
+    for (const token of swiftArgs) {
+        const reserved = token === '--'
+            ? '--'
+            : reservedAndroidSwiftPMOptions.find((option) => token === option || token.startsWith(`${option}=`))
+        if (reserved) {
+            throw `Android stream owns structural SwiftPM option "${token}"; remove it from swiftArgs`
+        }
+    }
+}
 
 export class Swift {
     private packageDump: SwiftPackageDump
@@ -419,25 +518,41 @@ export class Swift {
         targetName: string,
         release: boolean,
         swiftArgs?: string[],
+        androidTargetAPI?: string,
         androidSDKCompileVersion?: string,
         androidDroidLogs?: boolean,
         androidJNILogs?: boolean,
         abortHandler: AbortHandler,
         progressHandler?: (p: string) => void
-    }) {
+    }): Promise<AndroidBuildResult | undefined> {
         print(`\`swift build\` started`, LogLevel.Verbose)
+        const isAndroid = isAndroidBuildMode(options.mode)
+        const allowedSwiftArgs = options.swiftArgs ?? []
+        if (isAndroid) validateAndroidSwiftArgs(allowedSwiftArgs)
+        let androidIdentity: AndroidBuildIdentity | undefined
+        if (isAndroid) {
+            const targetAPI = parseInt(`${options.androidTargetAPI ?? options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
+            const swiftVersion = DevContainerConfig.swiftVersion()
+            const compatibility = getAndroidCompatibility(swiftVersion)
+            if (!Number.isInteger(targetAPI) || targetAPI < compatibility.min_api) {
+                throw `Project minSDK ${targetAPI} is incompatible with Swift ${swiftVersion.major}.${swiftVersion.minor}.${swiftVersion.patch}; required minimum API floor is ${compatibility.min_api}`
+            }
+            androidIdentity = makeAndroidBuildIdentity({
+                mode: options.mode,
+                release: options.release,
+                targetName: options.targetName,
+                targetAPI,
+                swiftArgs: allowedSwiftArgs,
+                swiftVersion
+            })
+        }
         var args: string[] = [
             'build',
             '-c', options.release ? 'release' : 'debug',
             '--product', options.targetName,
             '--build-path', options.type == SwiftBuildType.Native ? './.build' : `./.build/.${options.type}`,
-            ...(options.swiftArgs ?? [])
+            ...allowedSwiftArgs
         ]
-        function checkAndroidCompileSDKVersion(version: number) {
-            if (version < 28) {
-                throw `Can't compile for SDK v${version}, min version is 28, please increase it in devcontainer.json`
-            }
-        }
         switch (options.mode) {
             case SwiftBuildMode.Standard:
                 if (Swift.v5Mode) args.push('--enable-test-discovery')
@@ -491,11 +606,7 @@ export class Swift {
                 }
                 break
             case SwiftBuildMode.AndroidArm64: {
-                const compileVersion = parseInt(`${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
-                args.push(...['--swift-sdk', `aarch64-unknown-linux-android${compileVersion}`])
-                if (!DevContainerConfig.checkIfLegacyAndroidSDK()) {
-                    checkAndroidCompileSDKVersion(compileVersion)
-                }
+                args.push(...['--swift-sdk', androidIdentity!.swiftSDK])
                 if (options.androidDroidLogs === true) {
                     args.push(...['-Xswiftc', '-DDROIDLOGS'])
                 }
@@ -505,13 +616,7 @@ export class Swift {
                 break
             }
             case SwiftBuildMode.AndroidArmEabi: {
-                const compileVersion = parseInt(`${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
-                if (DevContainerConfig.checkIfLegacyAndroidSDK()) {
-                    args.push(...['--swift-sdk', `armv7-unknown-linux-androideabi${compileVersion}`])
-                } else {
-                    args.push(...['--swift-sdk', `armv7-unknown-linux-android${compileVersion}`])
-                    checkAndroidCompileSDKVersion(compileVersion)
-                }
+                args.push(...['--swift-sdk', androidIdentity!.swiftSDK])
                 if (options.androidDroidLogs === true) {
                     args.push(...['-Xswiftc', '-DDROIDLOGS'])
                 }
@@ -521,11 +626,7 @@ export class Swift {
                 break
             }
             case SwiftBuildMode.Androidx86_64: {
-                const compileVersion = parseInt(`${options.androidSDKCompileVersion ?? process.env.S_SDK_VERSION ?? Swift.defaultAndroidSDK}`)
-                args.push(...['--swift-sdk', `x86_64-unknown-linux-android${compileVersion}`])
-                if (!DevContainerConfig.checkIfLegacyAndroidSDK()) {
-                    checkAndroidCompileSDKVersion(compileVersion)
-                }
+                args.push(...['--swift-sdk', androidIdentity!.swiftSDK])
                 if (options.androidDroidLogs === true) {
                     args.push(...['-Xswiftc', '-DDROIDLOGS'])
                 }
@@ -563,22 +664,46 @@ export class Swift {
                 }
             }, args)
             if (options.abortHandler.isCancelled) return
+            if (result.code != 0) {
+                throw { stdout: '', stderr: result.stderr, error: { code: result.code } }
+            }
             const ending = await this.processCompilationErrors(result.stdout, () => options.abortHandler.isCancelled)
             if (options.abortHandler.isCancelled) return
             if (ending.length > 0) {
                 print(`${ending}`, LogLevel.Detailed)
             }
+            if (androidIdentity) {
+                const queryArgs = androidShowBinPathArgs(androidIdentity)
+                const binPath = (await this.execute(queryArgs, {
+                    type: options.type,
+                    abortHandler: options.abortHandler
+                })).trim()
+                if (options.abortHandler.isCancelled) return
+                if (binPath.length == 0) throw 'Swift build returned an empty --show-bin-path result'
+                const productPath = path.join(binPath, `lib${options.targetName}.so`)
+                if (!fs.existsSync(productPath)) {
+                    throw `Swift build product not found after authoritative --show-bin-path query: ${productPath}`
+                }
+                const buildResult: AndroidBuildResult = {
+                    identity: androidIdentity,
+                    binPath,
+                    productPath
+                }
+                const cacheOwner = this.stream as unknown as { recordSuccessfulAndroidBuild?: (result: AndroidBuildResult) => void }
+                cacheOwner.recordSuccessfulAndroidBuild?.(buildResult)
+                return buildResult
+            }
             sidebarTreeView?.refresh()
         } catch (error: any) {
-            const rawError: string = error.stdout
+            const rawError: string = typeof error?.stdout === 'string' ? error.stdout : ''
             if (rawError.length == 0) {
-                var errString: string = error.stderr
+                var errString: string = typeof error?.stderr === 'string' ? error.stderr : typeof error?.message === 'string' ? error.message : `${error}`
                 if (errString.length > 0) {
                     const separator = ': error:'
                     errString = errString.includes(separator) ? errString.split(separator).pop()?.replace(/^\s+|\s+$/g, '') ?? '' : errString
                     throw `Build failed: ${errString}`
                 } else {
-                    throw `Build failed with exit code ${error.error.code} ${error.stderr}`
+                    throw `Build failed: ${errString}`
                 }
             }
             const ending = await this.processCompilationErrors(rawError, () => options.abortHandler.isCancelled)

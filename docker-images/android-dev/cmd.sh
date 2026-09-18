@@ -42,7 +42,72 @@ if ! grep -q "GRADLE_HOME=${GRADLE_HOME}" ~/.bashrc 2>/dev/null; then
 fi
 
 # MARK: Android NDK setup
-NDK_VERSION="${S_NDK_VERSION:-r27c}"
+android_compatibility_mode="new"
+if [[ -z "${S_ANDROID_SDK_SETUP:-}" || -z "${S_ANDROID_SDK_MIN_API:-}" ]]; then
+    android_compatibility_mode="old"
+    case "${S_VERSION_MAJOR:-}.${S_VERSION_MINOR:-}.${S_VERSION_PATCH:-}" in
+        6.4.0)
+            S_NDK_VERSION="r30"
+            S_ANDROID_SDK_MIN_API="23"
+            S_ANDROID_SDK_SETUP="swiftbuild"
+            ;;
+        6.3.3|6.2.0)
+            S_NDK_VERSION="r27d"
+            S_ANDROID_SDK_MIN_API="28"
+            S_ANDROID_SDK_SETUP="ndk-sysroot"
+            ;;
+        6.1.3|6.1.2|6.1.0|6.0.3|6.0.1)
+            if [[ "${S_ARTIFACT_ANDROID_URL:-}" != https://github.com/finagolfin/swift-android-sdk/* ]]; then
+                echo -e "${RED}✗ Unsupported legacy Android SDK URL family for Swift ${S_VERSION_MAJOR}.${S_VERSION_MINOR}.${S_VERSION_PATCH}${NC}"
+                exit 1
+            fi
+            S_NDK_VERSION="r27c"
+            S_ANDROID_SDK_MIN_API="28"
+            S_ANDROID_SDK_SETUP="legacy"
+            ;;
+        *)
+            echo -e "${RED}✗ Unsupported old-format Android Swift version ${S_VERSION_MAJOR:-}.${S_VERSION_MINOR:-}.${S_VERSION_PATCH:-}; refusing to infer NDK/setup policy${NC}"
+            exit 1
+            ;;
+    esac
+fi
+
+if [[ -z "${S_NDK_VERSION:-}" ]]; then
+    echo -e "${RED}✗ S_NDK_VERSION is required for Android startup${NC}"
+    exit 1
+fi
+
+case "${S_ANDROID_SDK_SETUP}" in
+    ndk-sysroot)
+        [[ "${S_NDK_VERSION}" == "r27d" && "${S_ANDROID_SDK_MIN_API}" == "28" ]] || {
+            echo -e "${RED}✗ ndk-sysroot requires NDK r27d and minimum API 28${NC}"
+            exit 1
+        }
+        ;;
+    swiftbuild)
+        [[ "${S_NDK_VERSION}" == "r30" && "${S_ANDROID_SDK_MIN_API}" == "23" ]] || {
+            echo -e "${RED}✗ swiftbuild requires NDK r30 and minimum API 23${NC}"
+            exit 1
+        }
+        ;;
+    legacy)
+        [[ "${S_NDK_VERSION}" == "r27c" && "${S_ANDROID_SDK_MIN_API}" == "28" ]] || {
+            echo -e "${RED}✗ legacy requires NDK r27c and minimum API 28${NC}"
+            exit 1
+        }
+        [[ "${S_ARTIFACT_ANDROID_URL:-}" == https://github.com/finagolfin/swift-android-sdk/* ]] || {
+            echo -e "${RED}✗ legacy requires a finagolfin Swift Android SDK URL${NC}"
+            exit 1
+        }
+        ;;
+    *)
+        echo -e "${RED}✗ Unsupported Android SDK setup mode: ${S_ANDROID_SDK_SETUP:-<missing>}${NC}"
+        exit 1
+        ;;
+esac
+
+export S_NDK_VERSION S_ANDROID_SDK_MIN_API S_ANDROID_SDK_SETUP
+NDK_VERSION="${S_NDK_VERSION}"
 NDK_BASE_DIR="/opt/android/ndk"
 NDK_DIR="${NDK_BASE_DIR}/${NDK_VERSION}"
 NDK_DIST="android-ndk-${NDK_VERSION}-linux.zip"
@@ -73,6 +138,30 @@ else
     echo -e "${GREEN}✓ Android NDK ${NDK_VERSION} already present at ${NDK_DIR}${NC}"
 fi
 
+# Validate the installed NDK identity instead of trusting its directory name.
+validate_ndk_identity() {
+    local properties="${ANDROID_NDK_HOME}/source.properties"
+    if [[ ! -f "${properties}" ]]; then
+        echo -e "${RED}✗ Android NDK source.properties not found at ${properties}${NC}"
+        return 1
+    fi
+
+    local revision
+    revision=$(awk -F '=' '/^[[:space:]]*Pkg\.Revision[[:space:]]*=/{gsub(/[[:space:]]/, "", $2); print $2; exit}' "${properties}")
+    local major="${revision%%.*}"
+    local expected_major
+    case "${NDK_VERSION}" in
+        r30) expected_major="30" ;;
+        r27c|r27d) expected_major="27" ;;
+        *) echo -e "${RED}✗ Unknown NDK family: ${NDK_VERSION}${NC}"; return 1 ;;
+    esac
+    if [[ -z "${revision}" || "${major}" != "${expected_major}" ]]; then
+        echo -e "${RED}✗ Android NDK ${NDK_VERSION} has incompatible Pkg.Revision: ${revision:-<missing>}${NC}"
+        return 1
+    fi
+    echo -e "${GREEN}✓ Android NDK identity verified: ${revision} (${NDK_VERSION})${NC}"
+}
+
 # Export for current shell
 export ANDROID_NDK_HOME="${NDK_DIR}"
 export PATH="${ANDROID_NDK_HOME}:$PATH"
@@ -86,69 +175,49 @@ fi
 
 # MARK: Swift for Android SDK setup script
 setup_swift_android_sdk() {
-    # Check if S_ARTIFACT_ANDROID_URL is set and matches the pattern
-    if [[ -z "${S_ARTIFACT_ANDROID_URL}" ]]; then
-        return 0  # Skip silently
-    fi
-
-    # Check if URL starts with the Swift Android SDK GitHub pattern
-    if [[ "${S_ARTIFACT_ANDROID_URL}" != https://github.com/swift-android-sdk/swift-android-sdk* ]]; then
-        return 0  # Skip silently
-    fi
-
-    echo -e "${BLUE}🔍 Swift Android SDK detected, looking for setup script...${NC}"
-
-    # Extract the artifact bundle name from the URL
-    local archive_name=$(basename "${S_ARTIFACT_ANDROID_URL}")
-    local artifact_bundle_name="${archive_name%.tar.gz}"
-    
-    # Construct the expected installation path
-    local sdk_path="/swift/sdks/${artifact_bundle_name}"
-    local setup_script="${sdk_path}/swift-android/scripts/setup-android-sdk.sh"
-
-    echo -e "${BLUE}📦 Expected SDK path:${NC} ${sdk_path}"
-    echo -e "${BLUE}🔧 Setup script:${NC} ${setup_script}"
-
-    # Check if the SDK directory exists
-    if [[ ! -d "${sdk_path}" ]]; then
-        echo -e "${YELLOW}⚠️ Swift Android SDK directory not found: ${sdk_path}${NC}"
-        return 1
-    fi
-
-    # Check if the setup script exists
-    if [[ ! -f "${setup_script}" ]]; then
-        echo -e "${YELLOW}⚠️ Setup script not found: ${setup_script}${NC}"
-        echo -e "${BLUE}📁 Available files in SDK directory:${NC}"
-        find "${sdk_path}" -type f -name "*.sh" | head -10 | sed 's/^/  /'
-        return 1
-    fi
-
-    # Check if the script is executable, if not make it executable
-    if [[ ! -x "${setup_script}" ]]; then
-        echo -e "${YELLOW}⚠️ Setup script is not executable, fixing...${NC}"
-        chmod +x "${setup_script}"
-    fi
-
-    echo -e "${GREEN}🚀 Running Swift Android SDK setup...${NC}"
-    echo -e "${BLUE}📝 Executing:${NC} ${setup_script}"
-
-    # Execute the setup script
-    if "${setup_script}"; then
-        echo -e "${GREEN}✅ Swift Android SDK setup completed${NC}"
-        return 0
-    else
-        echo -e "${RED}❌ Swift Android SDK setup failed${NC}"
-        return 1
-    fi
+    case "${S_ANDROID_SDK_SETUP}" in
+        swiftbuild)
+            echo -e "${GREEN}✓ SwiftBuild mode: using Android NDK ${ANDROID_NDK_HOME} directly; no ndk-sysroot setup required${NC}"
+            return 0
+            ;;
+        legacy)
+            echo -e "${GREEN}✓ Legacy finagolfin mode: preserving self-contained Android SDK behavior; no modern setup script${NC}"
+            return 0
+            ;;
+        ndk-sysroot)
+            if [[ -z "${S_ARTIFACT_ANDROID_URL:-}" ]]; then
+                echo -e "${RED}✗ S_ARTIFACT_ANDROID_URL is required for ndk-sysroot setup${NC}"
+                return 1
+            fi
+            local archive_name
+            archive_name=$(basename "${S_ARTIFACT_ANDROID_URL}")
+            local artifact_bundle_name="${archive_name%.tar.gz}"
+            local sdk_path="/swift/sdks/${artifact_bundle_name}"
+            local setup_script="${sdk_path}/swift-android/scripts/setup-android-sdk.sh"
+            echo -e "${BLUE}🔍 Swift Android SDK setup: ${setup_script}${NC}"
+            if [[ ! -d "${sdk_path}" || ! -f "${setup_script}" ]]; then
+                echo -e "${RED}✗ Required Swift Android SDK setup script not found: ${setup_script}${NC}"
+                return 1
+            fi
+            if [[ ! -x "${setup_script}" ]]; then chmod +x "${setup_script}"; fi
+            if ! "${setup_script}"; then
+                echo -e "${RED}✗ Swift Android SDK setup failed${NC}"
+                return 1
+            fi
+            if [[ ! -d "${sdk_path}/swift-android/ndk-sysroot" ]]; then
+                echo -e "${RED}✗ Swift Android SDK setup completed without ndk-sysroot materialization${NC}"
+                return 1
+            fi
+            echo -e "${GREEN}✓ ndk-sysroot materialized for ${NDK_VERSION}${NC}"
+            return 0
+            ;;
+    esac
 }
 
-echo -e "${BLUE}🔎 Checking for Swift Android SDK setup...${NC}"
+if ! validate_ndk_identity; then exit 1; fi
 
-if setup_swift_android_sdk; then
-    echo -e "${GREEN}✅ Swift Android SDK setup check completed${NC}"
-else
-    echo -e "${YELLOW}⚠️ Swift Android SDK setup was skipped or failed${NC}"
-fi
+echo -e "${BLUE}🔎 Applying Android SDK setup mode ${S_ANDROID_SDK_SETUP} (${android_compatibility_mode} configuration)...${NC}"
+if ! setup_swift_android_sdk; then exit 1; fi
 
 # MARK: Android SDK setup
 SDK_VERSION="${S_SDK_VERSION:-35}"

@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import { projectDirectory, currentStream } from '../../extension'
 import { print } from '../../streams/stream'
 import { LogLevel } from '../../streams/stream'
-import { SwiftBuildMode, SwiftBuildType } from '../../swift'
+import { AndroidBuildResult, SwiftBuildMode, SwiftBuildType } from '../../swift'
 import { AbortHandler } from '../../bash'
 
 export enum KnownPackage {
@@ -36,20 +36,21 @@ export async function buildSwiftTarget(options: {
 	targetName: string,
 	release: boolean,
 	swiftArgs?: string[],
+	androidTargetAPI?: string,
 	androidSDKCompileVersion?: string,
 	androidDroidLogs?: boolean,
 	androidJNILogs?: boolean,
 	abortHandler: AbortHandler,
 	progressHandler?: (p: string) => void
-}) {
+}): Promise<AndroidBuildResult | undefined> {
 	if (!currentStream) { throw `stream is null` }
-	await currentStream.swift.build({
+	return await currentStream.swift.build({
 		type: options.type,
 		mode: options.mode,
 		targetName: options.targetName,
 		release: options.release,
 		swiftArgs: options.swiftArgs,
-		androidSDKCompileVersion: options.androidSDKCompileVersion,
+		androidTargetAPI: options.androidTargetAPI ?? options.androidSDKCompileVersion,
 		androidDroidLogs: options.androidDroidLogs,
 		androidJNILogs: options.androidJNILogs,
 		abortHandler: options.abortHandler,
