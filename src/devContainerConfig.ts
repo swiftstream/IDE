@@ -28,8 +28,8 @@ export class DevContainerConfig {
         fs.writeFileSync(this.path, devContainerContent, 'utf8')
     }
 
-    public static swiftVersion(): { major: number, minor: number, patch: number } {
-        const obj = new DevContainerConfig()
+    public static swiftVersion(devContainerPath?: string): { major: number, minor: number, patch: number } {
+        const obj = new DevContainerConfig(devContainerPath)
         const fallbackVersion = { major: 6, minor: 0, patch: 0 }
         if (!obj.config.containerEnv) return fallbackVersion
         const majorString = obj.config.containerEnv.S_VERSION_MAJOR

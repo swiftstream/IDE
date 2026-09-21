@@ -109,7 +109,9 @@ export class AndroidStreamConfig {
         compatibility?: AndroidCompatibility,
         swiftVersion?: SwiftSemanticVersion
     }): AndroidSourceKitSyncResult {
-        const swiftVersion = options.swiftVersion ?? DevContainerConfig.swiftVersion()
+        const swiftVersion = options.swiftVersion ?? DevContainerConfig.swiftVersion(
+            path.join(options.projectPath, '.devcontainer', 'devcontainer.json')
+        )
         const compatibility = options.compatibility ?? getAndroidCompatibility(swiftVersion)
         const requiredDescription = `Android Swift ${swiftVersion.major}.${swiftVersion.minor}.${swiftVersion.patch} requires project minSDK >= ${compatibility.min_api}; configured minSDK is ${options.minSDK}`
         const sourceKitPath = path.join(options.projectPath, '.sourcekit-lsp', 'config.json')
@@ -174,7 +176,9 @@ export class AndroidStreamConfig {
         stream: AndroidStream
     }): Promise<boolean> {
         const configExists = AndroidStreamConfig.exists({ projectPath: options.projectPath })
-        const compatibility = getAndroidCompatibility(DevContainerConfig.swiftVersion())
+        const compatibility = getAndroidCompatibility(DevContainerConfig.swiftVersion(
+            path.join(options.projectPath, '.devcontainer', 'devcontainer.json')
+        ))
         let x = new AndroidStreamConfig({ projectPath: options.projectPath })
         let startedInspection = false
         const startInspection = () => {
