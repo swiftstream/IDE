@@ -1,30 +1,54 @@
 import * as assert from 'assert'
+import * as fs from 'fs'
+import * as os from 'os'
+import * as path from 'path'
 import * as vscode from 'vscode'
 import { DevContainerConfig } from '../devContainerConfig'
 
-suite('Extension Test Suite', async () => {
-	vscode.window.showInformationMessage('Start all tests.')
+const extensionId = "swiftstream.swiftstream"
+const extension = vscode.extensions.getExtension(extensionId)
+assert.ok(extension, "Extension is not found")
 
-	const extensionId = "swiftstream.swiftstream"
+const testGraphExtension = require('../extension') as typeof import('../extension')
+let originalTestGraphExtensionContext: unknown
 
-	// Activate the extension
-	const extension = vscode.extensions.getExtension(extensionId)
-	assert.ok(extension, "Extension is not found")
+suiteSetup(async () => {
+	originalTestGraphExtensionContext = (testGraphExtension as any).extensionContext
 
-	console.log(`1 extension.isActive: ${extension.isActive}`)
-	
 	if (!extension.isActive) {
-		extension.activate()
+		await extension.activate()
+	}
+	assert.ok(extension.isActive, "Extension did not activate")
+
+	;(testGraphExtension as any).extensionContext = {
+		extensionUri: extension.extensionUri
 	}
 
-	while (!extension.isActive) {}
+	assert.strictEqual(
+		(testGraphExtension as any).extensionContext.extensionUri.toString(),
+		extension.extensionUri.toString()
+	)
+})
 
-	console.log(`2 extension.isActive: ${extension.isActive}`)
+suiteTeardown(() => {
+	;(testGraphExtension as any).extensionContext = originalTestGraphExtensionContext
+})
 
-	test('Dev Container Config test', async () => {
-		assert.ok(extension.isActive, "Extension did not activate")
-		let config = new DevContainerConfig()
-		assert.strictEqual(config.hasFeature('swiftstream/vsce:latest'), false)
+suite('Extension Test Suite', () => {
+	vscode.window.showInformationMessage('Start all tests.')
+
+	test('Dev Container Config test', () => {
+		const tempDirectory = fs.mkdtempSync(
+			path.join(os.tmpdir(), 'swiftstream-devcontainer-config-')
+		)
+		const configPath = path.join(tempDirectory, 'devcontainer.json')
+		try {
+			fs.writeFileSync(configPath, JSON.stringify({ features: {} }))
+			const config = new DevContainerConfig(configPath)
+			assert.strictEqual(config.hasFeature('swiftstream/vsce:latest'), undefined)
+		} finally {
+			fs.rmSync(tempDirectory, { recursive: true, force: true })
+		}
 	})
 
 	test('Sample test', () => {
