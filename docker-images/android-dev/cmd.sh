@@ -85,10 +85,10 @@ case "${S_ANDROID_SDK_SETUP}" in
         }
         ;;
     swiftbuild)
-        [[ "${S_NDK_VERSION}" == "r30" && "${S_ANDROID_SDK_MIN_API}" == "23" ]] || {
-            echo -e "${RED}✗ swiftbuild requires NDK r30 and minimum API 23${NC}"
+        if [[ "${S_NDK_VERSION}" != "r30" || ! "${S_ANDROID_SDK_MIN_API}" =~ ^[0-9]+$ ]] || (( 10#${S_ANDROID_SDK_MIN_API} < 23 )); then
+            echo -e "${RED}✗ swiftbuild requires NDK r30 and minimum API 23 or newer${NC}"
             exit 1
-        }
+        fi
         ;;
     legacy)
         [[ "${S_NDK_VERSION}" == "r27c" && "${S_ANDROID_SDK_MIN_API}" == "28" ]] || {

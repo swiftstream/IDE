@@ -1,6 +1,6 @@
 FROM swiftstream/base:noble
 
-ENV S_IMAGE_VERSION=101
+ENV S_IMAGE_VERSION=102
 
 # Install required tools
 RUN apt update && apt install -y openjdk-17-jdk
