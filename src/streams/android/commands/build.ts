@@ -16,6 +16,11 @@ import { AndroidAppProject } from '../../../androidAppProject'
 
 let hasRestartedLSP = false
 
+export function androidBuildNextStep(packageMode: PackageMode, buildConfiguration: SchemeBuildConfiguration): string {
+    const project = packageMode === PackageMode.App ? 'Java App Project' : 'Java Library Project'
+    return `➡️ Next step: ${project} → Assemble ${buildConfiguration}`
+}
+
 export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
     if (isBuildingDebug || stream.isAnyHotBuilding()) { return }
     if (!await AndroidStreamConfig.initializeConfigIfNeeded({
@@ -265,6 +270,7 @@ export async function buildCommand(stream: AndroidStream, scheme: Scheme) {
         if (abortHandler.isCancelled) return
         status('check', `Build Succeeded in ${measure.fulltime}`, StatusType.Success)
         print(`✅ Build Succeeded in ${measure.fulltime}`, LogLevel.Normal, preparedGradleWrapper)
+        print(androidBuildNextStep(streamConfig.config.packageMode, scheme.buildConfiguration), LogLevel.Normal)
         console.log(`Build Succeeded in ${measure.fulltime}`)
         stream.setBuildingDebug(false)
         sidebarTreeView?.refresh()

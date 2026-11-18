@@ -1,10 +1,29 @@
 import * as assert from 'assert'
 import { AbortHandler } from '../bash'
-import { AndroidStreamConfig, SchemeBuildConfiguration } from '../androidStreamConfig'
-import { buildCommand } from '../streams/android/commands/build'
+import { AndroidStreamConfig, PackageMode, SchemeBuildConfiguration } from '../androidStreamConfig'
+import { androidBuildNextStep, buildCommand } from '../streams/android/commands/build'
 import { window } from 'vscode'
 
 suite('Android build-start compatibility gate', () => {
+    test('describes the exact next Gradle assemble action for every Android package/configuration pair', () => {
+        assert.strictEqual(
+            androidBuildNextStep(PackageMode.App, SchemeBuildConfiguration.Debug),
+            '➡️ Next step: Java App Project → Assemble Debug'
+        )
+        assert.strictEqual(
+            androidBuildNextStep(PackageMode.App, SchemeBuildConfiguration.Release),
+            '➡️ Next step: Java App Project → Assemble Release'
+        )
+        assert.strictEqual(
+            androidBuildNextStep(PackageMode.Library, SchemeBuildConfiguration.Debug),
+            '➡️ Next step: Java Library Project → Assemble Debug'
+        )
+        assert.strictEqual(
+            androidBuildNextStep(PackageMode.Library, SchemeBuildConfiguration.Release),
+            '➡️ Next step: Java Library Project → Assemble Release'
+        )
+    })
+
     const scheme = {
         title: 'Demo Debug',
         swiftTargets: ['Demo'],
