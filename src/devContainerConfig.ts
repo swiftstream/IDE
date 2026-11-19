@@ -289,6 +289,7 @@ export const generateDevcontainerJson = (
 		appPort: new Array<string>(),
 		otherPortsAttributes: {},
 		postStartCommand: 'cmd.sh',
+		waitFor: 'postStartCommand',
 		customizations: {
 			vscode: {
 				extensions: [
@@ -300,9 +301,6 @@ export const generateDevcontainerJson = (
 					'extensions.ignoreRecommendations': true,
 					'remote.autoForwardPorts': false,
 					'swift.path': `/swift/toolchains/${toolchain.name}/usr/bin`,
-					'swift.swiftEnvironmentVariables': {
-						DEVELOPER_DIR: 'public'
-					},
 					'lldb.library': `/swift/toolchains/${toolchain.name}/usr/lib/liblldb.so`,
 					'lldb.launch.expressions': "native",
 					'swift.autoGenerateLaunchConfigurations': true,

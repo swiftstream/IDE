@@ -3,7 +3,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { DevContainerConfig } from '../devContainerConfig'
+import { DevContainerConfig, generateDevcontainerJson } from '../devContainerConfig'
 
 const extensionId = "swiftstream.swiftstream"
 const extension = vscode.extensions.getExtension(extensionId)
@@ -49,6 +49,30 @@ suite('Extension Test Suite', () => {
 		} finally {
 			fs.rmSync(tempDirectory, { recursive: true, force: true })
 		}
+	})
+
+	test('Generated Android Dev Container waits for post-start toolchain setup', () => {
+		const config = generateDevcontainerJson(
+			testGraphExtension.ExtensionStream.Android,
+			{ major: 6, minor: 4 }
+		)
+		assert.ok(config)
+		assert.strictEqual(config.postStartCommand, 'cmd.sh')
+		assert.strictEqual(config.waitFor, 'postStartCommand')
+		assert.strictEqual(config.containerEnv.S_VERSION_MAJOR, '6')
+		assert.strictEqual(config.containerEnv.S_VERSION_MINOR, '4')
+		assert.strictEqual(config.containerEnv.S_VERSION_PATCH, '2')
+		assert.strictEqual(config.containerEnv.S_ANDROID_SDK_MIN_API, '28')
+		assert.strictEqual(config.containerEnv.S_NDK_VERSION, 'r30')
+		assert.strictEqual(config.containerEnv.S_ANDROID_SDK_SETUP, 'swiftbuild')
+		assert.strictEqual(
+			config.customizations.vscode.settings['swift.path'],
+			'/swift/toolchains/6.4.2-RELEASE/usr/bin'
+		)
+		assert.strictEqual(
+			config.customizations.vscode.settings['swift.swiftEnvironmentVariables'],
+			undefined
+		)
 	})
 
 	test('Sample test', () => {
