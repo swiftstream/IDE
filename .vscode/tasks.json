@@ -39,8 +39,7 @@
 		// MARK: Build VSCode Extension VSIX
 		{
 			"label": "Build Extension",
-			"command": "vsce",
-			"args": ["package", "-o", "extension.vsix", "--allow-package-secrets", "privatekey"],
+			"command": "npm run package && vsce package -o extension.vsix --allow-package-secrets privatekey",
 			"type": "shell"
 		},
 		// MARK: Establish VSCode Store Session
