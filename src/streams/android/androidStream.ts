@@ -105,14 +105,14 @@ export class AndroidStream extends Stream {
             extensionContext.subscriptions.push(commands.registerCommand(this.generateProjectElement({ type: type }).id, async () => await this.generateGradleProject({ type: type }) ))
             extensionContext.subscriptions.push(commands.registerCommand(this.generateGradleWrapperElement({ type: type }).id, async () => await this.prepareGradleW({ type: type }) ))
             extensionContext.subscriptions.push(commands.registerCommand(this.gradleWAssembleElement({ type: type }).id, async () => await this.gradleWAssemble({ type: type }) ))
-            extensionContext.subscriptions.push(commands.registerCommand(this.droidLogsElement().id, async () => await this.switchDroidLogs() ))
-            extensionContext.subscriptions.push(commands.registerCommand(this.jniLogsElement().id, async () => await this.switchJNILogs() ))
-            extensionContext.subscriptions.push(commands.registerCommand(this.upgradeTo_6_2_16kb_Element().id, async () => await this.upgradeToSwift6_2_16kb() ))
             for (let c = 0; c < configurations.length; c++) {
                 const configuration = configurations[c]
                 
             }
         }
+        extensionContext.subscriptions.push(commands.registerCommand(this.droidLogsElement().id, async () => await this.switchDroidLogs() ))
+        extensionContext.subscriptions.push(commands.registerCommand(this.jniLogsElement().id, async () => await this.switchJNILogs() ))
+        extensionContext.subscriptions.push(commands.registerCommand(this.upgradeTo_6_2_16kb_Element().id, async () => await this.upgradeToSwift6_2_16kb() ))
     }
 
     schemeElement = () => {
