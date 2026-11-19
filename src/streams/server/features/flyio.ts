@@ -38,6 +38,8 @@ export class FlyIO extends CloudFeature {
         icon: this.streamingLogs ? 'sync~spin' : 'debug-line-by-line'
     })
 
+    // TOOD: add Env Variables button: server-environment
+
     async featureMenuItems(): Promise<Dependency[]> {
         return [
             ...(await super.featureMenuItems()),

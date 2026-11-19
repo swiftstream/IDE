@@ -9,6 +9,7 @@ import { DevContainerConfig } from '../../devContainerConfig'
 import { PureStream } from '../pure/pureStream'
 import { FlyIO } from './features/flyio'
 import { LogLevel, print } from '../stream'
+import { SFTP } from './features/sftp'
 
 export var currentPort: string = `${defaultServerPort}`
 export var pendingNewPort: string | undefined
@@ -17,12 +18,14 @@ export class ServerStream extends PureStream {
     public nginx: Nginx
     public ngrok: Ngrok
     public flyio: FlyIO
+    public sftp: SFTP
 
     constructor(overrideConfigure: boolean = false) {
         super(true)
         this.nginx = new Nginx(this)
         this.ngrok = new Ngrok(this)
         this.flyio = new FlyIO(this)
+        this.sftp = new SFTP(this)
         if (!overrideConfigure) this.configure()
     }
 
@@ -99,9 +102,37 @@ export class ServerStream extends PureStream {
             ...super.features(),
             this.nginx,
             this.ngrok,
-            this.flyio
+            this.flyio,
+            // this.sftp
         ]
     }
+
+    // TODO: fix SwifWeb, when getting index and it is not used in the App's declaration it throws error: unwrapping optional value is nil and it is visible in Unbearable log mode at phase 9
+
+    // TODO: not all features should be at the root
+    //       some of ThemeColor, like an extension for
+    //       lang files automatic generation should stay inside Features
+
+    // TODO: make MULTI stream type
+    //       where "target" is at the top of the items
+    //       and user should be able to add targets
+    //       and build/run any target (pure,server,web,android,embedded)
+
+    // TODO: make sure mimalloc is used for musl (or even glibc?)
+    // TODO: Debug menu items: Arguments: additional arguments for build/run
+    // TODO: remember about FoundationEssentials to reduce binary size https://github.com/apple/swift-argument-parser/pull/674
+
+    // TODO: deploy by SFTP (конфигурации в JSON)
+    // TODO: deploy to fly.io
+    // TODO: after login propose to continue to deploy
+    // TODO: use swift.org API https://www.swift.org/openapi/
+    // TODO: в веб-режиме: RecompileNative/RecompileWASI
+    // TODO:               switch normal/wasip16threads
+
+    // TODO: List all TODOs
+    // TODO: packages explorer as a dedicated TreeView on the sidebar
+    // TODO:                   mode: all packages in list / by dependencies (like in swiftlang extension)
+    // TODO:                   right click on package to edit: calls swift package edit <package-name>
 
     // MARK: Side Bar Tree View Items
 
