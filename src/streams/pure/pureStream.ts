@@ -276,7 +276,11 @@ export class PureStream extends Stream {
     }
     
     async hotRebuildSwift(params?: { target?: string }) {
-        await rebuildSwift()
+        const target = this.swift.selectedDebugTarget ?? params?.target
+        await rebuildSwift(this, debugBuildMode, {
+            target,
+            rerun: isRunningDebugTarget
+        })
     }
 
     async abortBuildingDebug() {
@@ -326,13 +330,25 @@ export class PureStream extends Stream {
         }
     }
 
+    private async resolveRunnableBinaryPath(options: {
+        release: boolean,
+        target: string
+    }): Promise<string> {
+        return await this.swift.resolveRunnableBinaryPath({
+            target: options.target,
+            mode: pureBuildModeToSwiftBuildMode(options.release ? releaseBuildMode : debugBuildMode),
+            release: options.release
+        })
+    }
+
     async checkBinaryAndBuildIfNeeded(options: {
         release: boolean,
         target: string
     }): Promise<boolean> {
-        if (!this.checkBinaryExists(options)) {
+        let pathToBinary = await this.resolveRunnableBinaryPath(options)
+        if (!fs.existsSync(pathToBinary)) {
             switch (await window.showQuickPick(['Yes', 'Not now'], {
-                placeHolder: `Would you like to build ${this.swift.selectedDebugTarget} target?`
+                placeHolder: `Would you like to build ${options.target} target?`
             })) {
                 case 'Yes':
                     this.isAwaitingBuild = true
@@ -344,6 +360,11 @@ export class PureStream extends Stream {
                     }
                     this.isAwaitingBuild = false
                     sidebarTreeView?.refresh()
+                    pathToBinary = await this.resolveRunnableBinaryPath(options)
+                    if (!fs.existsSync(pathToBinary)) {
+                        window.showErrorMessage(`Unable to run ${options.target}: SwiftPM binary was not produced at ${pathToBinary}`)
+                        return false
+                    }
                     return true
                 default:
                     return false
@@ -357,10 +378,15 @@ export class PureStream extends Stream {
         if (isRunningDebugTarget) {
             if (!this.swift.selectedDebugTarget) return
             if (!runningDebugTargetPid) return
-            if (!this.checkBinaryExists({ release: false, target: this.swift.selectedDebugTarget })) return
+            const pathToBinary = await this.resolveRunnableBinaryPath({
+                target: this.swift.selectedDebugTarget,
+                release: false
+            })
+            if (!fs.existsSync(pathToBinary)) return
             const attachConfig = pureAttachDebuggerConfig({
                 target: this.swift.selectedDebugTarget,
-                pid: runningDebugTargetPid
+                pid: runningDebugTargetPid,
+                program: pathToBinary
             })
             await commands.executeCommand('debug.startFromConfig', attachConfig)
             this.setDebugging(attachConfig.name)
@@ -372,9 +398,18 @@ export class PureStream extends Stream {
         if (!this.swift.selectedDebugTarget) 
             throw `Please select Swift target to run`
         if (await this.checkBinaryAndBuildIfNeeded({ release: false, target: this.swift.selectedDebugTarget }) === false) return
+        const pathToBinary = await this.resolveRunnableBinaryPath({
+            target: this.swift.selectedDebugTarget,
+            release: false
+        })
+        if (!fs.existsSync(pathToBinary)) {
+            window.showErrorMessage(`Unable to debug ${this.swift.selectedDebugTarget}: SwiftPM binary is missing at ${pathToBinary}`)
+            return
+        }
         const debugConfig = pureDebugConfig({
             target: this.swift.selectedDebugTarget,
-            args: []
+            args: [],
+            program: pathToBinary
         })
         await commands.executeCommand('debug.startFromConfig', debugConfig)
         this.setRunningDebugTarget(true)
@@ -412,11 +447,14 @@ export class PureStream extends Stream {
         if (!selectedTarget)
             throw `Please select Swift target to run`
         if (await this.checkBinaryAndBuildIfNeeded({ release: options.release, target: selectedTarget }) === false) return
-        const pathToBinary = pathToCompiledBinary({
+        const pathToBinary = await this.resolveRunnableBinaryPath({
             target: selectedTarget,
-            mode: pureBuildModeToSwiftBuildMode(options.release ? releaseBuildMode : debugBuildMode),
             release: options.release
         })
+        if (!fs.existsSync(pathToBinary)) {
+            window.showErrorMessage(`Unable to run ${selectedTarget}: SwiftPM binary is missing at ${pathToBinary}`)
+            return
+        }
         const runningTask = await this.swift.startRunTask({
             release: options.release,
             pathToBinary: pathToBinary,

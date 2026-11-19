@@ -152,6 +152,31 @@ export class Swift {
         this.runTaskProvider = undefined
     }
 
+    async resolveRunnableBinaryPath(params: {
+        target: string,
+        mode: SwiftBuildMode,
+        release: boolean
+    }): Promise<string> {
+        if (![SwiftBuildMode.Standard, SwiftBuildMode.StaticLinuxX86, SwiftBuildMode.StaticLinuxArm].includes(params.mode)) {
+            return pathToCompiledBinary({
+                target: params.target,
+                mode: params.mode,
+                release: params.release
+            })
+        }
+        const binPath = (await this.execute(
+            swiftPMShowBinPathArguments(params.release, params.mode),
+            { type: SwiftBuildType.Native }
+        )).trim()
+        if (binPath.length === 0) {
+            throw `SwiftPM returned an empty binary path for ${params.target}`
+        }
+        const resolvedBinPath = path.isAbsolute(binPath)
+            ? binPath
+            : path.resolve(projectDirectory!, binPath)
+        return path.join(resolvedBinPath, params.target)
+    }
+
     private async execute(args: string[], options: {
         type: SwiftBuildType,
         abortHandler?: AbortHandler | undefined
@@ -1303,6 +1328,31 @@ export function allSwiftDroidBuildTypes(): SwiftBuildType[] {
     /// Really important to have Native first!
     return [SwiftBuildType.Native, SwiftBuildType.Droid]
 }
+export function swiftPMShowBinPathArguments(
+    release: boolean,
+    mode: SwiftBuildMode = SwiftBuildMode.Standard
+): string[] {
+    const args = [
+        'build',
+        '--show-bin-path',
+        '-c', release ? 'release' : 'debug',
+        '--build-path', './.build'
+    ]
+    switch (mode) {
+        case SwiftBuildMode.StaticLinuxX86:
+            args.push('--swift-sdk', 'x86_64-swift-linux-musl')
+            args.push('--static-swift-stdlib')
+            break
+        case SwiftBuildMode.StaticLinuxArm:
+            args.push('--swift-sdk', 'aarch64-swift-linux-musl')
+            args.push('--static-swift-stdlib')
+            break
+        default:
+            break
+    }
+    return args
+}
+
 export function pathToCompiledBinary(params: {
     target: string | undefined,
     mode: SwiftBuildMode,

@@ -80,6 +80,100 @@ export async function buildCommand(stream: PureStream, buildMode: PureBuildMode)
     }
 }
 
-export async function rebuildSwift(params?: { target?: string }) {
-    // TODO: rebuildSwift(this, params)
+let awaitingHotRebuildTarget: string | undefined
+let awaitingHotRebuildAll = false
+
+export async function rebuildSwift(
+    stream: PureStream,
+    buildMode: PureBuildMode,
+    params?: {
+        target?: string,
+        rerun?: boolean
+    }
+) {
+    if (isBuildingDebug || stream.isAnyHotBuilding()) {
+        if (params?.target) {
+            awaitingHotRebuildTarget = params.target
+        } else {
+            awaitingHotRebuildAll = true
+        }
+        print(`👉 Delay Swift hot rebuild call`, LogLevel.Verbose)
+        return
+    }
+
+    const target = params?.target ?? stream.swift.selectedDebugTarget
+    if (!target) {
+        print(`🙅‍♂️ Hot rebuilding skipped because no debug target is selected`, LogLevel.Detailed)
+        return
+    }
+
+    const measure = new TimeMeasure()
+    const abortHandler = stream.setAbortBuildingDebugHandler(() => {
+        measure.finish()
+        status('circle-slash', `Aborted Hot Rebuild Swift after ${measure.fulltime}`, StatusType.Default)
+        print(`🚫 Aborted Hot Rebuild Swift after ${measure.fulltime}`)
+        stream.setBuildingDebug(false)
+        stream.setHotBuildingSwift(false)
+        sidebarTreeView?.refresh()
+    })
+
+    stream.setBuildingDebug(true)
+    stream.setHotBuildingSwift(true)
+    sidebarTreeView?.cleanupErrors()
+    sidebarTreeView?.refresh()
+
+    try {
+        print(`🔥 Hot Rebuilding Swift target \`${target}\``, LogLevel.Detailed)
+        await buildExecutableTarget({
+            target,
+            mode: buildMode,
+            release: false,
+            force: true,
+            abortHandler
+        })
+
+        if (abortHandler.isCancelled) return
+
+        measure.finish()
+        status('flame', `Hot Rebuilt Swift in ${measure.fulltime}`, StatusType.Success)
+        print(`🔥 Hot Rebuilt Swift in ${measure.fulltime}`)
+        stream.setBuildingDebug(false)
+        stream.setHotBuildingSwift(false)
+        sidebarTreeView?.refresh()
+
+        if (params?.rerun) {
+            print(`🔁 Restarting running Swift target \`${target}\``, LogLevel.Verbose)
+            stream.stop()
+            await new Promise((resolve) => setTimeout(resolve, 500))
+            await stream.run({ release: false })
+        }
+
+        const delayedTarget = awaitingHotRebuildAll ? undefined : awaitingHotRebuildTarget
+        const hasDelayedHotRebuild = awaitingHotRebuildAll || awaitingHotRebuildTarget !== undefined
+        awaitingHotRebuildAll = false
+        awaitingHotRebuildTarget = undefined
+        if (hasDelayedHotRebuild) {
+            print(`👉 Passing to delayed Swift hot rebuild call`, LogLevel.Verbose)
+            await rebuildSwift(stream, buildMode, {
+                target: delayedTarget,
+                rerun: params?.rerun
+            })
+        }
+    } catch (error: any) {
+        awaitingHotRebuildAll = false
+        awaitingHotRebuildTarget = undefined
+        stream.setBuildingDebug(false)
+        stream.setHotBuildingSwift(false)
+        sidebarTreeView?.refresh()
+        const text = `Hot Rebuild Swift Failed`
+        if (isString(error)) {
+            print(`🧯 ${error}`)
+        } else {
+            const json = JSON.stringify(error)
+            const errorText = `${json === '{}' ? error : json}`
+            print(`🧯 ${text}: ${errorText}`)
+            console.error(error)
+        }
+        status('error', text, StatusType.Error)
+    }
 }

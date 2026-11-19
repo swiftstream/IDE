@@ -34,13 +34,14 @@ export async function webDebugConfig(): Promise<any> {
 
 export function pureDebugConfig(options: {
     target: string,
-    args: string[]
+    args: string[],
+    program?: string
 }): any {
     return {
         name: `Debugging ${options.target}`,
         type: 'lldb-dap',
         request: 'launch',
-        program: '${workspaceFolder:' + `${path.basename(projectDirectory ?? '')}` + `}/.build/debug/${options.target}`,
+        program: options.program ?? '${workspaceFolder:' + `${path.basename(projectDirectory ?? '')}` + `}/.build/debug/${options.target}`,
         args: options.args,
         cwd: '${workspaceFolder:' + `${path.basename(projectDirectory ?? '')}` + '}'
     }
@@ -48,13 +49,14 @@ export function pureDebugConfig(options: {
 
 export function pureAttachDebuggerConfig(options: {
     target: string,
-    pid: number
+    pid: number,
+    program?: string
 }): any {
     return {
         name: `Debugging ${options.target}`,
         type: 'lldb-dap',
         request: 'attach',
-        program: '${workspaceFolder:' + `${path.basename(projectDirectory ?? '')}` + `}/.build/debug/${options.target}`,
+        program: options.program ?? '${workspaceFolder:' + `${path.basename(projectDirectory ?? '')}` + `}/.build/debug/${options.target}`,
         pid: options.pid
     }
 }
