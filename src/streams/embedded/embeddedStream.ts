@@ -289,7 +289,18 @@ export class EmbeddedStream extends Stream {
     }
 
     async debugActionItems(): Promise<Dependency[]> { return [] }
-    async debugOptionItems(): Promise<Dependency[]> { return [] }
+    async debugOptionItems(): Promise<Dependency[]> {
+        let items: Dependency[] = []
+        // if (this.branch !== EmbeddedBranch.ESP32) {
+        //     items.push(new Dependency({
+        //         id: SideTreeItem.HotRebuild,
+        //         label: 'Hot rebuild',
+        //         version: isHotRebuildEnabled ? 'Enabled' : 'Disabled',
+        //         icon: isHotRebuildEnabled ? 'pass::charts.green' : 'circle-large-outline'
+        //     }))
+        // }
+        return items
+    }
     async deviceItems(): Promise<Dependency[]> {
         let items: Dependency[] = []
         items.push(this.flashElement())
@@ -326,3 +337,9 @@ export class EmbeddedStream extends Stream {
         return await super.customItems(element)
     }
 }
+
+
+// idf.py reconfigure
+// idf.py add-dependency DEPENDENCY
+// idf.py add-dependency example/cmp
+// ESP Component Registry -> open website https://components.espressif.com

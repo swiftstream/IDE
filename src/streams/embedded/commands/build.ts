@@ -191,3 +191,22 @@ export async function buildCommand(stream: EmbeddedStream, scheme: Scheme) {
         status('error', `${text} (${measure.fulltime})`, StatusType.Error)
     }
 }
+
+// ESP32: no Package.swift + CMakeLists.txt -> idf.py build
+// RPico: Package.swift + Makefile -> make
+// RPico: no Package.swift + CMakeLists.txt ->
+//         no build folder -> cmake -B build -G Ninja . -DCMAKE_EXPORT_COMPILE_COMMANDS=On
+//         build/rebuild   -> cmake --build build
+// RPico: no Package.swift, no CMakeLists.txt -> build.sh (if not here then list all .sh and let pick the right)
+// Remember to set: export PICO_BOARD=pico_w or another
+// STM32: no Package.swift, no CMakeLists.txt -> build.sh/build-elf.sh (if not here then list all .sh and let pick the right)
+// Remember to set: export STM_BOARD=NUCLEO_F103RB   # or STM32F746G_DISCOVERY
+// Save build system with details somewhere in .devcontainer folder
+// STM32: Package.swift + Makefile -> make
+// Checkmark: manage swift files in CMakeLists.txt
+// NRF: no Package.swift + CMakeLists.txt ->
+//      no build folder -> cmake -B build -G Ninja -DBOARD=nrf52840dk/nrf52840 -DUSE_CCACHE=0 .
+//      build/rebuild   -> cmake --build build
+//
+// Clear cache: remove `build` or `.build` folder
+// Propose to build for the first time to enable autocomplete
