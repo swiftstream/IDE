@@ -8,7 +8,7 @@ import { window } from 'vscode'
 import { AndroidCompatibility, validateAndroidCompatibility } from '../toolchain'
 
 suite('Android stream compatibility configuration', () => {
-    const compatibility64: AndroidCompatibility = { ndk: 'r30', min_api: 23, sdk_setup: 'swiftbuild' }
+    const compatibility64: AndroidCompatibility = { ndk: 'r30', min_api: 28, sdk_setup: 'swiftbuild' }
     const compatibility633: AndroidCompatibility = { ndk: 'r27d', min_api: 28, sdk_setup: 'ndk-sysroot' }
     let projectPath: string
 
@@ -35,16 +35,16 @@ suite('Android stream compatibility configuration', () => {
     }
 
     test('reads Swift version from an explicit devcontainer path', () => {
-        const devContainerPath = writeDevContainerVersion({ major: 6, minor: 4, patch: 0 })
+        const devContainerPath = writeDevContainerVersion({ major: 6, minor: 4, patch: 2 })
 
         assert.deepStrictEqual(
             DevContainerConfig.swiftVersion(devContainerPath),
-            { major: 6, minor: 4, patch: 0 }
+            { major: 6, minor: 4, patch: 2 }
         )
     })
 
     test('synchronizes SourceKit from the explicit project devcontainer when version override is absent', () => {
-        const devContainerPath = writeDevContainerVersion({ major: 6, minor: 4, patch: 0 })
+        const devContainerPath = writeDevContainerVersion({ major: 6, minor: 4, patch: 2 })
         const originalSwiftVersion = DevContainerConfig.swiftVersion
         ;(DevContainerConfig as any).swiftVersion = (requestedPath?: string) => {
             assert.strictEqual(requestedPath, devContainerPath)
@@ -53,7 +53,7 @@ suite('Android stream compatibility configuration', () => {
         try {
             const result = AndroidStreamConfig.synchronizeSourceKitConfig({
                 projectPath,
-                minSDK: 23,
+                minSDK: 28,
                 compatibility: compatibility64
             })
 
@@ -62,7 +62,7 @@ suite('Android stream compatibility configuration', () => {
             const config = JSON.parse(fs.readFileSync(sourceKitPath, 'utf8'))
             assert.deepStrictEqual(config, {
                 swiftPM: {
-                    swiftSDK: 'aarch64-unknown-linux-android23'
+                    swiftSDK: 'aarch64-unknown-linux-android28'
                 }
             })
         } finally {
@@ -70,7 +70,7 @@ suite('Android stream compatibility configuration', () => {
         }
     })
 
-    test('synchronizes an Android 6.4/min23 target and preserves user fields', () => {
+    test('synchronizes an Android 6.4/min28 target and preserves user fields', () => {
         const sourceKitFolder = path.join(projectPath, '.sourcekit-lsp')
         fs.mkdirSync(sourceKitFolder, { recursive: true })
         const sourceKitPath = path.join(sourceKitFolder, 'config.json')
@@ -81,33 +81,33 @@ suite('Android stream compatibility configuration', () => {
 
         const result = AndroidStreamConfig.synchronizeSourceKitConfig({
             projectPath,
-            minSDK: 23,
+            minSDK: 28,
             compatibility: compatibility64,
-            swiftVersion: { major: 6, minor: 4, patch: 0 }
+            swiftVersion: { major: 6, minor: 4, patch: 2 }
         })
         assert.strictEqual(result.compatible, true)
         const config = JSON.parse(fs.readFileSync(sourceKitPath, 'utf8'))
         assert.deepStrictEqual(config, {
             userRoot: true,
-            swiftPM: { configuration: 'debug', userSwiftPM: 'kept', swiftSDK: 'aarch64-unknown-linux-android23' }
+            swiftPM: { configuration: 'debug', userSwiftPM: 'kept', swiftSDK: 'aarch64-unknown-linux-android28' }
         })
         const firstBytes = fs.readFileSync(sourceKitPath)
         AndroidStreamConfig.synchronizeSourceKitConfig({
             projectPath,
-            minSDK: 23,
+            minSDK: 28,
             compatibility: compatibility64,
-            swiftVersion: { major: 6, minor: 4, patch: 0 }
+            swiftVersion: { major: 6, minor: 4, patch: 2 }
         })
         assert.deepStrictEqual(fs.readFileSync(sourceKitPath), firstBytes)
     })
 
-    test('removes only the owned target while pending 6.4/min23 to 6.3.3 switch', () => {
+    test('removes only the owned target while an unsupported min23 config is pending a 6.3.3 switch', () => {
         const sourceKitFolder = path.join(projectPath, '.sourcekit-lsp')
         fs.mkdirSync(sourceKitFolder, { recursive: true })
         const sourceKitPath = path.join(sourceKitFolder, 'config.json')
         fs.writeFileSync(sourceKitPath, JSON.stringify({
             userRoot: 'kept',
-            swiftPM: { configuration: 'debug', userSwiftPM: 'kept', swiftSDK: 'aarch64-unknown-linux-android23' }
+            swiftPM: { configuration: 'debug', userSwiftPM: 'kept', swiftSDK: 'aarch64-unknown-linux-android28' }
         }))
         const result = AndroidStreamConfig.synchronizeSourceKitConfig({
             projectPath,
@@ -160,7 +160,7 @@ suite('Android stream compatibility configuration', () => {
         const sourceKitPath = path.join(sourceKitFolder, 'config.json')
         fs.writeFileSync(sourceKitPath, JSON.stringify({
             userRoot: 'kept',
-            swiftPM: { configuration: 'debug', userSwiftPM: 'kept', swiftSDK: 'aarch64-unknown-linux-android23' }
+            swiftPM: { configuration: 'debug', userSwiftPM: 'kept', swiftSDK: 'aarch64-unknown-linux-android28' }
         }))
         let packageNameCalls = 0
         let surfacedError = ''
@@ -210,7 +210,7 @@ suite('Android stream compatibility configuration', () => {
             packageName: 'com.example.demo',
             packageMode: PackageMode.Library,
             compileSDK: 35,
-            minSDK: 23,
+            minSDK: 28,
             javaVersion: 11,
             soMode: SoMode.Packed,
             schemes: []
@@ -221,7 +221,7 @@ suite('Android stream compatibility configuration', () => {
             swiftPM: { configuration: 'debug', userSwiftPM: 'kept' }
         }))
         const originalSwiftVersion = DevContainerConfig.swiftVersion
-        ;(DevContainerConfig as any).swiftVersion = () => ({ major: 6, minor: 4, patch: 0 })
+        ;(DevContainerConfig as any).swiftVersion = () => ({ major: 6, minor: 4, patch: 2 })
         try {
             const stream = { swift: { getPackageName: async () => { throw new Error('package-name fallback must not run') } } } as any
             assert.strictEqual(await AndroidStreamConfig.initializeConfigIfNeeded({ projectPath, stream }), true)
@@ -233,10 +233,10 @@ suite('Android stream compatibility configuration', () => {
         }
         const config = JSON.parse(fs.readFileSync(path.join(projectPath, '.vscode', 'android-stream.json'), 'utf8'))
         const sourceKitConfig = JSON.parse(fs.readFileSync(sourceKitPath, 'utf8'))
-        assert.strictEqual(config.minSDK, 23)
+        assert.strictEqual(config.minSDK, 28)
         assert.deepStrictEqual(sourceKitConfig, {
             userRoot: 'kept',
-            swiftPM: { configuration: 'debug', userSwiftPM: 'kept', swiftSDK: 'aarch64-unknown-linux-android23' }
+            swiftPM: { configuration: 'debug', userSwiftPM: 'kept', swiftSDK: 'aarch64-unknown-linux-android28' }
         })
     })
 })
