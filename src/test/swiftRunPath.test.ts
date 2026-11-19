@@ -1,6 +1,6 @@
 import * as assert from 'assert'
 import { pureAttachDebuggerConfig, pureDebugConfig } from '../helpers/createDebugConfigIfNeeded'
-import { SwiftBuildMode, swiftPMShowBinPathArguments } from '../swift'
+import { SwiftBuildMode, swiftPMShowBinPathArguments, webNativeHelperBinaryOptions } from '../swift'
 
 suite('SwiftPM runnable binary path selection', () => {
     test('queries the debug bin path from SwiftPM instead of hardcoding the target triple layout', () => {
@@ -41,6 +41,25 @@ suite('SwiftPM runnable binary path selection', () => {
             '--swift-sdk', 'x86_64-swift-linux-musl',
             '--static-swift-stdlib'
         ])
+    })
+
+    test('uses the native debug build for Web manifest and index helper binaries', () => {
+        assert.deepStrictEqual(
+            webNativeHelperBinaryOptions('Service'),
+            {
+                target: 'Service',
+                mode: SwiftBuildMode.Standard,
+                release: false
+            }
+        )
+        assert.deepStrictEqual(
+            webNativeHelperBinaryOptions('App'),
+            {
+                target: 'App',
+                mode: SwiftBuildMode.Standard,
+                release: false
+            }
+        )
     })
 
     test('passes the resolved SwiftPM executable path to launch and attach debug configs', () => {

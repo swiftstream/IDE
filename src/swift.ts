@@ -338,12 +338,9 @@ export class Swift {
         serviceWorkerTarget: string,
         abortHandler: AbortHandler
     }): Promise<any> {
-        const executablePath = pathToCompiledBinary({
-            target: options.serviceWorkerTarget,
-            mode: SwiftBuildMode.Standard,
-            release: false,
-            androidSDKCompileVersion: undefined
-        })
+        const executablePath = await this.resolveRunnableBinaryPath(
+            webNativeHelperBinaryOptions(options.serviceWorkerTarget)
+        )
         if (!fs.existsSync(executablePath)) {
             throw `Missing executable binary of the service target, can't retrieve manifest`
         }
@@ -368,12 +365,9 @@ export class Swift {
         target: string,
         abortHandler: AbortHandler
     }): Promise<Index | undefined> {
-        const executablePath = pathToCompiledBinary({
-            target: options.target,
-            mode: SwiftBuildMode.Standard,
-            release: false,
-            androidSDKCompileVersion: undefined
-        })
+        const executablePath = await this.resolveRunnableBinaryPath(
+            webNativeHelperBinaryOptions(options.target)
+        )
         if (!fs.existsSync(executablePath)) {
             throw `Missing executable binary of the ${options.target} target, can't retrieve index data`
         }
@@ -1328,6 +1322,20 @@ export function allSwiftDroidBuildTypes(): SwiftBuildType[] {
     /// Really important to have Native first!
     return [SwiftBuildType.Native, SwiftBuildType.Droid]
 }
+export function webNativeHelperBinaryOptions(
+    target: string
+): {
+    target: string,
+    mode: SwiftBuildMode,
+    release: boolean
+} {
+    return {
+        target,
+        mode: SwiftBuildMode.Standard,
+        release: false
+    }
+}
+
 export function swiftPMShowBinPathArguments(
     release: boolean,
     mode: SwiftBuildMode = SwiftBuildMode.Standard
