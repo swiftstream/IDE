@@ -6,7 +6,6 @@ import { SwiftBuildType } from '../../swift'
 import { getLastModifiedDate, LastModifiedDateType, saveLastModifiedDateForKey, wasFileModified } from '../../helpers/filesHelper'
 import { TimeMeasure } from '../../helpers/timeMeasureHelper'
 import { AbortHandler } from '../../bash'
-import { DevContainerConfig } from '../../devContainerConfig'
 
 export async function updateSwiftDependencies(options: {
     type?: SwiftBuildType,
@@ -14,11 +13,7 @@ export async function updateSwiftDependencies(options: {
     substatus: (x: string) => void,
     abortHandler: AbortHandler
 }) {
-    // In Swift 5 mode we possibly could have conflict with initial
-    // `swift package update` initiated by the official Swift extension
-    if (DevContainerConfig.swiftVersion().major == 5) {
-        await currentStream?.awaitForCompletionOfOtherSwiftProcessesIfNeeded('Updating dependencies')
-    }
+    await currentStream?.awaitForCompletionOfOtherSwiftProcessesIfNeeded('Updating dependencies')
     const packageUpdate = async () => {
         if (!currentStream) { throw `stream is null` }
         await currentStream.swift.packageUpdate({

@@ -6,7 +6,6 @@ import { SwiftBuildType } from '../../../../swift'
 import { buildStatus, clearStatus, LogLevel, print } from '../../../stream'
 import { AbortHandler } from '../../../../bash'
 import { PureBuildMode, pureBuildModeToSwiftBuildMode } from '../../pureStream'
-import { DevContainerConfig } from '../../../../devContainerConfig'
 
 export async function buildExecutableTarget(options: {
     type?: SwiftBuildType,
@@ -20,11 +19,7 @@ export async function buildExecutableTarget(options: {
         print(`💨 Skipping building \`${options.target}\` swift target ${options.type ? `for \`.${options.type}\` ` : ''}in ${options.release ? 'release' : 'debug'} mode because \`force == false\` and not modified any swift file`, LogLevel.Verbose)
         return
     }
-    // In Swift 5 mode we possibly could have conflict with initial
-    // `swift package resolve` initiated by the official Swift extension
-    if (DevContainerConfig.swiftVersion().major == 5) {
-        await currentStream?.awaitForCompletionOfOtherSwiftProcessesIfNeeded(`Building \`${options.target}\` swift target`)
-    }
+    await currentStream?.awaitForCompletionOfOtherSwiftProcessesIfNeeded(`Building \`${options.target}\` swift target`)
     const measure = new TimeMeasure()
     print({
         detailed: `🧱 Building \`${options.target}\` swift target ${options.type ? `for \`.${options.type}\` ` : ''}`,

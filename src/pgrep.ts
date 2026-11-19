@@ -26,7 +26,10 @@ export class Pgrep {
     async isAnyBlockingSwiftProcessRunning(): Promise<boolean> {
         if (!projectDirectory) return false
         try {
-            const result = await this.execute(['-fl', `swift-(build|package|frontend|backtrace|help)`], projectDirectory)
+            // SourceKit-LSP background indexing intentionally uses its own index-build
+            // tree and should not block Swift Stream. Only SwiftPM driver processes
+            // contend with our package/build operations.
+            const result = await this.execute(['-fl', `swift(-| )(build|package)`], projectDirectory)
             if (result.code != 0) return false
             return result.stdout.includes('swift')
         } catch {

@@ -142,6 +142,40 @@ suite('Extension Test Suite', () => {
 		}
 	})
 
+	test('Generated Dev Containers disable competing automatic SwiftPM resolve by default', () => {
+		for (const stream of [
+			testGraphExtension.ExtensionStream.Android,
+			testGraphExtension.ExtensionStream.Server,
+			testGraphExtension.ExtensionStream.Web,
+			testGraphExtension.ExtensionStream.Pure
+		]) {
+			const config = generateDevcontainerJson(stream, { major: 6, minor: 4 })
+			assert.ok(config)
+			assert.strictEqual(
+				config.customizations.vscode.settings['swift.disableAutoResolve'],
+				true
+			)
+		}
+
+		for (const branch of [
+			EmbeddedBranch.ESP32,
+			EmbeddedBranch.STM32,
+			EmbeddedBranch.RASPBERRY,
+			EmbeddedBranch.NRF
+		]) {
+			const config = generateDevcontainerJson(
+				testGraphExtension.ExtensionStream.Embedded,
+				{ major: 6, minor: 4 },
+				{ embedded: { branch } }
+			)
+			assert.ok(config)
+			assert.strictEqual(
+				config.customizations.vscode.settings['swift.disableAutoResolve'],
+				true
+			)
+		}
+	})
+
 	test('Android swiftbuild bootstrap accepts API floors newer than its technical minimum', () => {
 		const script = fs.readFileSync(
 			path.resolve(__dirname, '..', '..', 'docker-images', 'android-dev', 'cmd.sh'),

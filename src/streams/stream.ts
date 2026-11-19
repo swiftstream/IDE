@@ -708,14 +708,15 @@ export class Stream {
 
 	async awaitForCompletionOfOtherSwiftProcessesIfNeeded(title: string = '', attempt: number = 0) {
 		if (await this.pgrep.isAnyBlockingSwiftProcessRunning()) {
-			if (attempt <= 5) {
+			if (attempt < 120) {
 				if (attempt == 0 && title.length > 0) {
-					status('clock', `${title} paused, awaiting another Swift process...`, StatusType.Default)
+					status('clock', `${title} paused, waiting for Swift Package Manager...`, StatusType.Default)
+					print(`⏳ ${title} is waiting for another Swift Package Manager process`, LogLevel.Detailed)
 				}
-				await new Promise((x) => setTimeout(x, 3000))
+				await new Promise((x) => setTimeout(x, 1000))
 				await this.awaitForCompletionOfOtherSwiftProcessesIfNeeded(title, attempt + 1)
 			} else {
-				throw `${title} was waiting for another Swift process for too long. Try again when it has finished.`
+				throw `${title} was waiting for another Swift Package Manager process for too long. Try again when it has finished.`
 			}
 		}
 	}

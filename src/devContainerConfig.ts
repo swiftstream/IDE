@@ -305,6 +305,7 @@ export const generateDevcontainerJson = (
 					'lldb.launch.expressions': "native",
 					'swift.autoGenerateLaunchConfigurations': true,
 					'swift.backgroundCompilation': false,
+					'swift.disableAutoResolve': true,
 					'swift.showCreateSwiftProjectInWelcomePage': false,
 					'editor.semanticHighlighting.enabled': true
 				}
