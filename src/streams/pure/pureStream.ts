@@ -81,6 +81,7 @@ export class PureStream extends Stream {
         extensionContext.subscriptions.push(commands.registerCommand(this.debugTargetElement().id, async () => await this.chooseTarget({ release: false, alwaysShowList: true, withProgress: true }) ))
         extensionContext.subscriptions.push(commands.registerCommand(this.releseBuildModeElement().id, async () => await this.changeBuildMode({ debug: false }) ))
         extensionContext.subscriptions.push(commands.registerCommand(this.releaseTargetElement().id, async () => await this.chooseTarget({ release: true, alwaysShowList: true, withProgress: true }) ))
+        extensionContext.subscriptions.push(commands.registerCommand(this.argsMenuElement().id, async () => {}))
     }
 
     debugBuildModeElement = () => new Dependency({
@@ -111,6 +112,13 @@ export class PureStream extends Stream {
         tooltip: 'Release Target To Build/Run/Test',
         icon: 'target'
     })
+    argsMenuElement = () => new Dependency({
+        id: `DebugBuildArguments`,
+        label: 'Arguments',
+        version: '--static-swift-stdlib -Xlinker -ljemalloc',
+        icon: 'symbol-constant'
+    })
+
     onDidRenameFiles(event: FileRenameEvent) {
         super.onDidRenameFiles(event)
 
@@ -506,6 +514,7 @@ export class PureStream extends Stream {
 		await Promise.all(this.features().map(async (feature) => {
             items.push(...(await super.debugOptionItems()))
         }))
+        // items.push(this.argsMenuElement())
 		return items
 	}
     async defaultReleaseItems(): Promise<Dependency[]> {
