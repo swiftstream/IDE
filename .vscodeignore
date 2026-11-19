@@ -1,5 +1,8 @@
 .vscode/**
 .vscode-test/**
+.agent/**
+.artifacts/**
+.devcontainer/**
 out/**
 node_modules/**
 src/**
