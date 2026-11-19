@@ -16,6 +16,14 @@ After work, inspect complete status and the exact task-scope diff. Confirm unrel
 - Do not use reset, restore, checkout, clean, stash, rebase, amend, squash, force-push, or other history/worktree rewriting without explicit maintainer authorization.
 - Never use destructive cleanup as a shortcut for understanding a dirty working tree.
 
+## Release-Phase Worktree Rule
+
+During release-finalization/release-candidate work, follow the canonical-workspace rule in `WORKFLOW.md`.
+
+- Do not create or use Git worktrees, sibling checkouts, temporary clones, exported source copies, or alternate RC/package directories as release-candidate authority.
+- A dirty canonical checkout is a state to reconcile explicitly, not a reason to route release work through another working tree.
+- Git worktrees may still be used during ordinary development only when the maintainer/workflow explicitly allows them; they are forbidden once release finalization is active.
+
 ## Mutation Scope
 
 - Every non-trivial task defines its approved path scope before mutation.

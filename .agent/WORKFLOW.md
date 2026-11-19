@@ -96,6 +96,21 @@ npm run package
 
 Do not run the broadest/most side-effectful validation after every surgical task. Consolidate broad gates at coherent integration checkpoints. A green compile/test does not replace architecture/diff review.
 
+## Release-Phase Canonical Workspace
+
+Once the maintainer declares the repository to be in release-finalization/release-candidate work, the canonical repository checkout becomes the sole authority for release source, build, packaging, acceptance, and publication.
+
+- Finalize the release candidate in place in the canonical checkout. Do not evade unrelated or dirty working-tree state by packaging from another checkout.
+- Do not create or use sibling RC directories, exported/archive copies, temporary clones, copied source trees, alternate package workspaces, detached release checkouts, or Git worktrees as release-candidate source/build/package authority.
+- Do not build a release package in one workspace and copy it into another workspace to make that other workspace appear authoritative.
+- Release packaging and package-level acceptance must originate from the canonical checkout, and the exact package produced there is the package used by subsequent install/runtime/publication gates unless a later maintainer-authorized rebuild replaces it.
+- If the canonical checkout contains unrelated WIP that prevents a clean release candidate, reconcile that state in the canonical checkout through an explicit maintainer-reviewed source/Git decision. Do not route around it with another checkout or copy.
+- `.artifacts/**` remains evidence/planning storage only. It must not become an alternate release source, build root, package root, or shadow checkout.
+- External consumer projects, platform/device environments, containers, or fixtures are allowed when they are the actual subject of an integration/runtime test. They must not contain or masquerade as an alternate copy of the repository's release-candidate source.
+- Before any release package/build/install/publication gate, verify that the active source/build root is the canonical checkout. If not, stop before execution.
+
+This release-phase rule overrides convenience patterns that may be acceptable during ordinary feature development, experimentation, or isolated research. Once release finalization begins, workspace identity must remain singular and obvious.
+
 ## Documentation Synchronization
 
 After accepted implementation/correction, update only stable owners whose durable facts changed: architecture, source map, project memory, open decisions, work state, testing/style policy, skills, or workflow.
