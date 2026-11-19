@@ -14,6 +14,7 @@ import { SwiftPackageDump } from './swiftPackageDump'
 import { DevContainerConfig } from './devContainerConfig'
 import { AndroidStreamConfig } from './androidStreamConfig'
 import { getAndroidCompatibility } from './toolchain'
+import { getWasiBuildConfiguration } from './wasiBuild'
 
 export interface AndroidBuildIdentity {
     configuration: 'debug' | 'release'
@@ -569,10 +570,11 @@ export class Swift {
                 args.push(...['--static-swift-stdlib'])
                 if (options.release) args.push('-Xlinker', '-s')
                 break
-            case SwiftBuildMode.Wasi:
+            case SwiftBuildMode.Wasi: {
+                const wasiBuild = getWasiBuildConfiguration(Swift.v5Mode, process.env.S_ARTIFACT_WASI_URL)
                 if (Swift.v5Mode) args.push('--enable-test-discovery')
                 if (Swift.v5Mode) args.push(...['--triple', 'wasm32-unknown-wasi'])
-                else args.push(...['--swift-sdk', 'wasm32-unknown-wasi'])
+                else args.push(...['--swift-sdk', wasiBuild.swiftSDK])
                 args.push(...['--static-swift-stdlib'])
                 // MEMO: -Xlinker -s is redundant because wasm-strip is more efficient
                 args.push(...['-Xswiftc', '-DJAVASCRIPTKIT_WITHOUT_WEAKREFS'])
@@ -588,6 +590,7 @@ export class Swift {
                     args.push(...['-Xlinker', '--export-if-defined=__main_argc_argv'])
                 }
                 break
+            }
             case SwiftBuildMode.Wasip1Threads:
                 if (Swift.v5Mode) throw `Wasi Preview 1 (threads) SDK is not available for Swift 5`
                 args.push(...['--swift-sdk', 'wasm32-unknown-wasip1-threads'])
@@ -1317,7 +1320,7 @@ export function pathToCompiledBinary(params: {
         case SwiftBuildMode.StaticLinuxArm:
             return path.join(projectDirectory!, '.build', `aarch64-swift-linux-musl`, type, ...target)
         case SwiftBuildMode.Wasi:
-            return path.join(projectDirectory!, '.build', '.wasi', `wasm32-unknown-wasi`, type, ...target)
+            return path.join(projectDirectory!, '.build', '.wasi', getWasiBuildConfiguration(Swift.v5Mode, env.S_ARTIFACT_WASI_URL).targetTriple, type, ...target)
         case SwiftBuildMode.Wasip1Threads:
             return path.join(projectDirectory!, '.build', '.wasi', `wasm32-unknown-wasip1-threads`, type, ...target)
         case SwiftBuildMode.AndroidArm64:
