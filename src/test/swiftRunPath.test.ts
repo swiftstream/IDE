@@ -1,6 +1,7 @@
 import * as assert from 'assert'
 import { pureAttachDebuggerConfig, pureDebugConfig } from '../helpers/createDebugConfigIfNeeded'
 import { SwiftBuildMode, swiftPMShowBinPathArguments, webNativeHelperBinaryOptions } from '../swift'
+import { wasmOptArguments } from '../wasm'
 
 suite('SwiftPM runnable binary path selection', () => {
     test('queries the debug bin path from SwiftPM instead of hardcoding the target triple layout', () => {
@@ -59,6 +60,21 @@ suite('SwiftPM runnable binary path selection', () => {
                 mode: SwiftBuildMode.Standard,
                 release: false
             }
+        )
+    })
+
+    test('enables every WebAssembly feature required by the Swift 6.4 release optimizer input', () => {
+        assert.deepStrictEqual(
+            wasmOptArguments('/tmp/app.wasm'),
+            [
+                '-Os',
+                '--enable-bulk-memory',
+                '--enable-sign-ext',
+                '--enable-nontrapping-float-to-int',
+                '/tmp/app.wasm',
+                '-o',
+                '/tmp/app.wasm'
+            ]
         )
     })
 

@@ -7,6 +7,18 @@ import { lowerI64Imports } from '@wasmer/wasm-transformer'
 import { TimeMeasure } from './helpers/timeMeasureHelper'
 import { humanFileSize } from './helpers/filesHelper'
 
+export function wasmOptArguments(fullPath: string): string[] {
+    return [
+        '-Os',
+        '--enable-bulk-memory',
+        '--enable-sign-ext',
+        '--enable-nontrapping-float-to-int',
+        fullPath,
+        '-o',
+        fullPath
+    ]
+}
+
 export class Wasm {
     private stripBinPath?: string
     private optBinPath?: string
@@ -71,7 +83,7 @@ export class Wasm {
             throw 'Path to wasm-opt is undefined'
         const fullPath = `${options.destPath}/${options.lowercasedTarget}.wasm`
         const originalSize = fs.statSync(fullPath).size
-        const args: string[] = ['-Os', '--enable-bulk-memory', '--enable-sign-ext', fullPath, '-o', fullPath]
+        const args = wasmOptArguments(fullPath)
         print(`💾 Optimizing ${options.lowercasedTarget}.wasm`, LogLevel.Detailed)
         print(`executing wasm-opt ${args.join(' ')}`, LogLevel.Verbose)
         const result = await this.webStream.bash.execute({
