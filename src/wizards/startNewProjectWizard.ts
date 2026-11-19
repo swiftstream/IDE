@@ -13,7 +13,7 @@ import { copyFile, readFile } from '../helpers/filesHelper'
 import { openProject } from '../helpers/openProject'
 import { DevContainerConfig, EmbeddedBranch, generateAndWriteDevcontainerJson } from '../devContainerConfig'
 import { AndroidStreamConfig, PackageMode } from '../androidStreamConfig'
-import { getAndroidCompatibility } from '../toolchain'
+import { findTheRightToolchain, getAndroidCompatibility } from '../toolchain'
 
 let webViewPanel: WebviewPanel | undefined
 const isWin = process.platform == 'win32'
@@ -139,13 +139,13 @@ async function createNewProjectFiles(
 		var dependencies: any[] = []
 		Handlebars.registerHelper('eq', (a, b) => a === b)
 		Handlebars.registerHelper('arrNotEmpty', (a) => a && a.length > 0)
-		const defaultSwiftVersion = { major: 6, minor: 2 }
+		const defaultSwiftVersion = { major: 6, minor: 4 }
 		switch (streamType) {
 			case 'web':
 				if (!generateAndWriteDevcontainerJson(
 					devContainerPath,
 					ExtensionStream.Web,
-					{ major: 6, minor: 3 }
+					defaultSwiftVersion
 				)) return
 				const webType = selectedValues['web-type']
 				const webLibType = selectedValues['web-lib-type']
@@ -209,7 +209,7 @@ async function createNewProjectFiles(
 				// MARK: DEPENDENCIES
 				dependencies.push({
 					comment: '🛜 Swift web framework.',
-					package: `.package(url: "${swifWebRepo}/web", from: "2.0.0-nightly.5")`
+					package: `.package(url: "${swifWebRepo}/web", from: "2.0.0-nightly.12")`
 				})
 				if (webAppStyle == `tailwind`) {
 					dependencies.push({ comment: '🖼️ UI Library', package: `.package(url: "${swifWebRepo}/tailwind", from: "1.0.0")` })
@@ -474,7 +474,7 @@ async function createNewProjectFiles(
 				fs.writeFileSync(osPath.join(wSourcesPath, 'package.json'), JSON.stringify(packageJson, null, '\t'))
 				// Create Package.swift
 				let payload = {
-					swiftToolsVersion: '6.3',
+					swiftToolsVersion: '6.4',
 					name: name,
 					platforms: '.macOS(.v10_15)',
 					products: products,
@@ -508,7 +508,7 @@ async function createNewProjectFiles(
 					case 'vapor':
 						await (async function () {
 							let payload = {
-								swiftToolsVersion: '6.2',
+								swiftToolsVersion: '6.4',
 								name: name,
 								platforms: '.macOS(.v13)',
 								dependencies: [
@@ -598,7 +598,7 @@ async function createNewProjectFiles(
 					case 'hummingbird':
 						await (async function () {
 							let payload = {
-								swiftToolsVersion: '6.2',
+								swiftToolsVersion: '6.4',
 								name: name,
 								platforms: '.macOS(.v14), .iOS(.v17), .tvOS(.v17)',
 								products: [
@@ -673,6 +673,7 @@ async function createNewProjectFiles(
 				}
 				break
 			case 'android':
+				const androidToolchain = findTheRightToolchain(ExtensionStream.Android, defaultSwiftVersion)
 				if (!generateAndWriteDevcontainerJson(
 					devContainerPath,
 					ExtensionStream.Android,
@@ -684,7 +685,7 @@ async function createNewProjectFiles(
 					projectPath: path,
 					projectName: name,
 					packageMode: androidType == 'app' ? PackageMode.App : PackageMode.Library,
-					androidMinAPIFloor: getAndroidCompatibility({ ...defaultSwiftVersion, patch: 0 }).min_api
+					androidMinAPIFloor: getAndroidCompatibility(androidToolchain.version).min_api
 				})
 				if (!config) {
 					webViewPanel?.webview.postMessage({ type: 'creatingFailed', data: {} })
@@ -762,9 +763,9 @@ async function createNewProjectFiles(
 						}
 					})
 					let packagePayload = {
-						swiftToolsVersion: '6.2',
+						swiftToolsVersion: '6.4',
 						name: name,
-						platforms: '.macOS(.v10_15)',
+						platforms: '.macOS(.v12)',
 						products: [
 							`.library(name: "AppUI", type: .dynamic, targets: ["AppUI"])`,
 							`.executable(name: "AppManifest", targets: ["AppManifest"])`
@@ -814,9 +815,9 @@ async function createNewProjectFiles(
 						Handlebars.compile(readFile(osPath.join('assets', 'Sources', streamType, androidType, 'Sources', 'swift', 'Library.hbs')))(hbsSourcePayload)
 					)
 					let packagePayload = {
-						swiftToolsVersion: '6.2',
+						swiftToolsVersion: '6.4',
 						name: name,
-						platforms: '.macOS(.v10_15)',
+						platforms: '.macOS(.v12)',
 						products: [
 							`.library(name: "${name}", type: .dynamic, targets: ["${name}"])`
 						],
@@ -1111,7 +1112,7 @@ async function createNewProjectFiles(
 				if (!generateAndWriteDevcontainerJson(
 					devContainerPath,
 					ExtensionStream.Pure,
-					{ major: 6, minor: 2 }
+					defaultSwiftVersion
 				)) return
 				const packageType = selectedValues['package-type']
 				// Copy devcontainer files
