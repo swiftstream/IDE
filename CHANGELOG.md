@@ -1,13 +1,25 @@
 # Changelog
-## [1.18.0] - 2026-09-18
+## [1.18.0] - 2026-11-19
 ### Added
-- Added Android support for official Swift 6.3.3 and Swift 6.4.0 toolchains.
+- Added Android support for official Swift 6.3.3 and Swift 6.4.2 toolchains.
 ### Changed
-- Android builds now use toolchain-specific NDK, setup mode, and minimum API compatibility for Swift 6.3.3 and 6.4.0.
+- Android builds now use toolchain-specific NDK, setup mode, and minimum API compatibility for Swift 6.3.3 and 6.4.2.
+- Fresh Android, Server, Web, Pure, and Embedded projects now default to Swift 6.4, resolving to the current Swift 6.4.2 release.
 - Android SourceKit and SwiftPM targets now follow the project's minimum Android API, with incompatible saved configurations rejected before SwiftPM work begins.
 - Android Swift output discovery now uses authoritative SwiftPM output paths and supports multi-product, multi-ABI packaging.
 - Android runtime library selection now follows the exact selected Swift version.
 - Retained older Android toolchain environment behavior remains supported.
+- Web builds with the official Swift 6 WASM SDK now derive the SDK identifier from the configured artifact and use the correct `wasm32-unknown-wasip1` output path.
+- Generated Web projects now require SwifWeb from `2.0.0-nightly.12`.
+- Fixed Android remote extension activation by registering global log and upgrade commands only once.
+- Generated Swift 6.4 Android packages now use macOS 12 as the manifest minimum, matching the current PackageDescription baseline.
+- Generated Dev Containers now wait for `postStartCommand` before VS Code attaches, so toolchain and SDK setup completes before extensions activate.
+- Removed the generated relative `DEVELOPER_DIR=public` Swift setting, which is incompatible with Swift 6.4's default Swift Build search-path validation.
+- Generated Dev Containers now disable the official Swift extension's automatic package resolve, while Swift Stream serializes its SwiftPM work behind active package operations without blocking SourceKit-LSP indexing.
+- Server and Pure Run/Debug now resolve canonical SwiftPM executable paths for both glibc and Static Linux musl builds instead of relying on hardcoded build directories.
+- Server and Pure hot rebuild now performs a quick selected-target rebuild and automatically restarts an already running process after Swift source saves.
+- Successful Swift package dumps now tolerate warnings on stderr instead of treating them as fatal errors.
+- Generated Android apps keep the historical `@main App` entry point only for Android builds, leaving `AppManifest` as the sole native host entry point for Swift 6.4 metadata builds.
 ## [1.17.1] - 2026-01-15
 ### Changed
 - Fixed Android Library template by switching to `deleteLocalRefPure`, thanks to @JarWarren
