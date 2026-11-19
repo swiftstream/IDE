@@ -476,7 +476,7 @@ async function createNewProjectFiles(
 				let payload = {
 					swiftToolsVersion: '6.4',
 					name: name,
-					platforms: '.macOS(.v10_15)',
+					platforms: '.macOS(.v12)',
 					products: products,
 					dependencies: dependencies,
 					targets: targets
