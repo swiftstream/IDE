@@ -36,6 +36,7 @@ export class SwiftPackageDump {
         fresh: boolean,
         type: SwiftBuildType
     }): Promise<void> {
+        print(`calling swift.dump method`, LogLevel.Unbearable)
         if (!projectDirectory) throw `Swift Package Dump: project directory can't be null`
         if (!fs.existsSync(`${projectDirectory}/Package.swift`)) {
             throw `No Package.swift file in the project directory`
@@ -45,16 +46,18 @@ export class SwiftPackageDump {
             cwd: projectDirectory,
             type: options.type
         })
-        if (result.stderr.length > 0)
-            throw `Swift Package Dump: ${result.stderr}`
         if (result.code != 0) {
-            throw `Swift Package Dump: failed with ${result.code} code`
+            throw `Swift Package Dump: failed with ${result.code} code${result.stderr.length > 0 ? `: ${result.stderr}` : ''}`
+        }
+        if (result.stderr.length > 0) {
+            print(`Swift Package Dump warnings: ${result.stderr}`, LogLevel.Detailed)
         }
         const json = JSON.parse(result.stdout)
         const dependencies: Dependency[] = json.dependencies
         const products: Product[] = json.products.map((x:any) => {
             var p: Product = x
             p.executable = x.type.hasOwnProperty('executable')
+            print(`x.type?.library ${x.type?.library}`, LogLevel.Unbearable)
             p.isLibrary = x.type?.library !== undefined
             return p
         })
