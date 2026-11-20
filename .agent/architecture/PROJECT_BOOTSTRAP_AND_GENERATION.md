@@ -50,3 +50,9 @@ For changed generation behavior, acceptance evidence includes representative out
 
 Where a branch invokes platform/external tooling after initial file generation, separate deterministic file-generation validation from expensive/live follow-up execution.
 
+## `GEN-009` — PWA Service Images Are Web Assets, Not SwiftPM Resources
+
+Generated PWA Service images under `Sources/<ServiceTarget>/images/**` must be excluded from the SwiftPM target resource set and transported directly by the IDE web resource phase into the public output tree.
+
+Do not reintroduce those images as SwiftPM target resources: SwiftPM resource accessor generation adds a Foundation-backed WASM size/ICU dependency edge that this packaging boundary intentionally avoids.
+
