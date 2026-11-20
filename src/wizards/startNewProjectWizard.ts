@@ -8,6 +8,7 @@ import { defaultServerPort, defaultWebCrawlerPort, defaultWebDevPort, defaultWeb
 import { sortLibraryFilePaths } from '../helpers/sortLibraryFilePaths'
 import { checkPortAndGetNextIfBusy } from '../helpers/checkPortAndGetNextIfBusy'
 import { webSourcesFolder } from '../streams/web/webStream'
+import { makePWAServiceTarget, serviceImagesDirectoryName } from '../streams/web/serviceResourcePackaging'
 import { FileBuilder } from '../helpers/fileBuilder'
 import { copyFile, readFile } from '../helpers/filesHelper'
 import { openProject } from '../helpers/openProject'
@@ -187,7 +188,7 @@ async function createNewProjectFiles(
 					}
 					await copyFile(osPath.join('media', 'favicon.ico'), osPath.join(p, 'favicon.ico'))
 				} else if (webType != 'lib') {
-					const p = osPath.join(path, 'Sources', 'Service', 'images')
+					const p = osPath.join(path, 'Sources', 'Service', serviceImagesDirectoryName)
 					if (!fs.existsSync(p)) {
 						fs.mkdirSync(p, { recursive: true })
 					}
@@ -261,19 +262,7 @@ async function createNewProjectFiles(
 						resources: (webType == 'spa') ? ['.copy("favicon.ico")'] : []
 					})
 					if (webType != 'spa') {
-						targets.push({
-							type: 'executableTarget',
-							name: 'Service',
-							dependencies: [
-								'.product(name: "ServiceWorker", package: "web")'
-							],
-							resources: [
-								'.copy("images/favicon.ico")',
-								'.copy("images/icon-192.png")',
-								'.copy("images/icon-512.png")',
-								'.copy("images")'
-							]
-						})
+						targets.push(makePWAServiceTarget())
 					}
 				}
 				if (webType == 'lib') {
@@ -432,8 +421,8 @@ async function createNewProjectFiles(
 							.line('            .backgroundColor("#2A3443")')
 							.line('            .themeColor("white")')
 							.line('            .icons(')
-							.line('                .init(src: "images/icon-192.png", sizes: .x192, type: .png),')
-							.line('                .init(src: "images/icon-512.png", sizes: .x512, type: .png)')
+							.line('                .init(src: "' + serviceImagesDirectoryName + '/icon-192.png", sizes: .x192, type: .png),')
+							.line('                .init(src: "' + serviceImagesDirectoryName + '/icon-512.png", sizes: .x512, type: .png)')
 							.line('            )')
 							.line('        Lifecycle.activate {')
 							.line('            debugPrint("service activate event")')
