@@ -39,7 +39,8 @@
 		// MARK: Build VSCode Extension VSIX
 		{
 			"label": "Build Extension",
-			"command": "npm run package && vsce package -o extension.vsix --allow-package-secrets privatekey",
+			"command": "vsce",
+			"args": ["package", "-o", "extension.vsix", "--allow-package-secrets", "privatekey"],
 			"type": "shell"
 		},
 		// MARK: Establish VSCode Store Session
@@ -53,7 +54,7 @@
 		{
 			"label": "Store Publish Build",
 			"command": "vsce",
-			"args": ["publish", "--allow-package-secrets", "privatekey"], // "--pre-release"
+			"args": ["publish", "--packagePath", "extension.vsix"],
 			"type": "shell"
 		},
 		// MARK: Docker List
