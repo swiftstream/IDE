@@ -12,7 +12,7 @@
 - Web builds with the official Swift 6 WASM SDK now derive the SDK identifier from the configured artifact and use the correct `wasm32-unknown-wasip1` output path.
 - PWA manifest and index extraction now resolve their native debug helper executables through SwiftPM instead of assuming a target-triple build directory.
 - Web release optimization now enables non-trapping float-to-int WebAssembly instructions emitted by Swift 6.4.
-- Generated Web projects now require SwifWeb from `2.0.0-nightly.12` and use macOS 12 as the generated manifest minimum for Swift 6.4.
+- Generated Web projects now require SwifWeb from `2.0.0-nightly.13` and use macOS 12 as the generated manifest minimum for Swift 6.4.
 - Fixed Android remote extension activation by registering global log and upgrade commands only once.
 - Generated Swift 6.4 Android packages now use macOS 12 as the manifest minimum, matching the current PackageDescription baseline.
 - Generated Dev Containers now wait for `postStartCommand` before VS Code attaches, so toolchain and SDK setup completes before extensions activate.
