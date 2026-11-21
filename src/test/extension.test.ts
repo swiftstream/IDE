@@ -51,7 +51,7 @@ suite('Extension Test Suite', () => {
 		}
 	})
 
-	test('Generated Android Dev Container waits for post-start toolchain setup', () => {
+	test('Generated Android Dev Container defaults to Swift 6.4.3 and the official Android SDK', () => {
 		const config = generateDevcontainerJson(
 			testGraphExtension.ExtensionStream.Android,
 			{ major: 6, minor: 4 }
@@ -61,13 +61,17 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(config.waitFor, 'postStartCommand')
 		assert.strictEqual(config.containerEnv.S_VERSION_MAJOR, '6')
 		assert.strictEqual(config.containerEnv.S_VERSION_MINOR, '4')
-		assert.strictEqual(config.containerEnv.S_VERSION_PATCH, '2')
+		assert.strictEqual(config.containerEnv.S_VERSION_PATCH, '3')
 		assert.strictEqual(config.containerEnv.S_ANDROID_SDK_MIN_API, '28')
 		assert.strictEqual(config.containerEnv.S_NDK_VERSION, 'r30')
 		assert.strictEqual(config.containerEnv.S_ANDROID_SDK_SETUP, 'swiftbuild')
 		assert.strictEqual(
+			config.containerEnv.S_ARTIFACT_ANDROID_URL,
+			'https://download.swift.org/swift-6.4.3-release/android-sdk/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE_android.artifactbundle.tar.gz'
+		)
+		assert.strictEqual(
 			config.customizations.vscode.settings['swift.path'],
-			'/swift/toolchains/6.4.2-RELEASE/usr/bin'
+			'/swift/toolchains/6.4.3-RELEASE/usr/bin'
 		)
 		assert.strictEqual(
 			config.customizations.vscode.settings['swift.swiftEnvironmentVariables'],
@@ -75,7 +79,7 @@ suite('Extension Test Suite', () => {
 		)
 	})
 
-	test('Generated Web Dev Container defaults to Swift 6.4.2 and the official WASM SDK', () => {
+	test('Generated Web Dev Container defaults to Swift 6.4.3 and the official WASM SDK', () => {
 		const config = generateDevcontainerJson(
 			testGraphExtension.ExtensionStream.Web,
 			{ major: 6, minor: 4 }
@@ -85,18 +89,18 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(config.waitFor, 'postStartCommand')
 		assert.strictEqual(config.containerEnv.S_VERSION_MAJOR, '6')
 		assert.strictEqual(config.containerEnv.S_VERSION_MINOR, '4')
-		assert.strictEqual(config.containerEnv.S_VERSION_PATCH, '2')
+		assert.strictEqual(config.containerEnv.S_VERSION_PATCH, '3')
 		assert.strictEqual(
 			config.containerEnv.S_ARTIFACT_WASI_URL,
-			'https://download.swift.org/swift-6.4.2-release/wasm-sdk/swift-6.4.2-RELEASE/swift-6.4.2-RELEASE_wasm.artifactbundle.tar.gz'
+			'https://download.swift.org/swift-6.4.3-release/wasm-sdk/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE_wasm.artifactbundle.tar.gz'
 		)
 		assert.strictEqual(
 			config.customizations.vscode.settings['swift.path'],
-			'/swift/toolchains/6.4.2-RELEASE/usr/bin'
+			'/swift/toolchains/6.4.3-RELEASE/usr/bin'
 		)
 	})
 
-	test('Generated Pure Dev Container defaults to Swift 6.4.2 and the official Static Linux SDK', () => {
+	test('Generated Pure Dev Container defaults to Swift 6.4.3 and the official Static Linux SDK', () => {
 		const config = generateDevcontainerJson(
 			testGraphExtension.ExtensionStream.Pure,
 			{ major: 6, minor: 4 }
@@ -106,18 +110,37 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(config.waitFor, 'postStartCommand')
 		assert.strictEqual(config.containerEnv.S_VERSION_MAJOR, '6')
 		assert.strictEqual(config.containerEnv.S_VERSION_MINOR, '4')
-		assert.strictEqual(config.containerEnv.S_VERSION_PATCH, '2')
+		assert.strictEqual(config.containerEnv.S_VERSION_PATCH, '3')
 		assert.strictEqual(
 			config.containerEnv.S_ARTIFACT_STATIC_LINUX_URL,
-			'https://download.swift.org/swift-6.4.2-release/static-sdk/swift-6.4.2-RELEASE/swift-6.4.2-RELEASE_static-linux-0.1.0.artifactbundle.tar.gz'
+			'https://download.swift.org/swift-6.4.3-release/static-sdk/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE_static-linux-0.1.0.artifactbundle.tar.gz'
 		)
 		assert.strictEqual(
 			config.customizations.vscode.settings['swift.path'],
-			'/swift/toolchains/6.4.2-RELEASE/usr/bin'
+			'/swift/toolchains/6.4.3-RELEASE/usr/bin'
 		)
 	})
 
-	test('Generated Embedded Dev Containers default every branch to Swift 6.4.2', () => {
+	test('Generated Server Dev Container defaults to Swift 6.4.3 and the official Static Linux SDK', () => {
+		const config = generateDevcontainerJson(
+			testGraphExtension.ExtensionStream.Server,
+			{ major: 6, minor: 4 }
+		)
+		assert.ok(config)
+		assert.strictEqual(config.containerEnv.S_VERSION_MAJOR, '6')
+		assert.strictEqual(config.containerEnv.S_VERSION_MINOR, '4')
+		assert.strictEqual(config.containerEnv.S_VERSION_PATCH, '3')
+		assert.strictEqual(
+			config.containerEnv.S_ARTIFACT_STATIC_LINUX_URL,
+			'https://download.swift.org/swift-6.4.3-release/static-sdk/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE_static-linux-0.1.0.artifactbundle.tar.gz'
+		)
+		assert.strictEqual(
+			config.customizations.vscode.settings['swift.path'],
+			'/swift/toolchains/6.4.3-RELEASE/usr/bin'
+		)
+	})
+
+	test('Generated Embedded Dev Containers default every branch to Swift 6.4.3', () => {
 		for (const branch of [
 			EmbeddedBranch.ESP32,
 			EmbeddedBranch.STM32,
@@ -132,12 +155,12 @@ suite('Extension Test Suite', () => {
 			assert.ok(config)
 			assert.strictEqual(config.containerEnv.S_VERSION_MAJOR, '6')
 			assert.strictEqual(config.containerEnv.S_VERSION_MINOR, '4')
-			assert.strictEqual(config.containerEnv.S_VERSION_PATCH, '2')
+			assert.strictEqual(config.containerEnv.S_VERSION_PATCH, '3')
 			assert.strictEqual(config.containerEnv.S_EMBEDDED_BRANCH, branch)
 			assert.strictEqual(config.containerEnv.S_ARTIFACT_STATIC_LINUX_URL, undefined)
 			assert.strictEqual(
 				config.customizations.vscode.settings['swift.path'],
-				'/swift/toolchains/6.4.2-RELEASE/usr/bin'
+				'/swift/toolchains/6.4.3-RELEASE/usr/bin'
 			)
 		}
 	})

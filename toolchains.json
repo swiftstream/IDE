@@ -1,6 +1,17 @@
 {
 	"android": [
 		{
+            "name": "6.4.3-RELEASE",
+            "version": { "major": 6, "minor": 4, "patch": 3 },
+            "android_version": "24-0.1",
+			"android_compatibility": { "ndk": "r30", "min_api": 28, "sdk_setup": "swiftbuild" },
+			"toolchain_urls": {
+                "aarch64": "https://download.swift.org/swift-6.4.3-release/ubuntu2404-aarch64/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE-ubuntu24.04-aarch64.tar.gz",
+                "x86_64": "https://download.swift.org/swift-6.4.3-release/ubuntu2404/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE-ubuntu24.04.tar.gz"
+            },
+            "artifact_url": "https://download.swift.org/swift-6.4.3-release/android-sdk/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE_android.artifactbundle.tar.gz"
+		},
+		{
             "name": "6.4.2-RELEASE",
             "version": { "major": 6, "minor": 4, "patch": 2 },
             "android_version": "24-0.1",
@@ -90,6 +101,15 @@
 		}
 	],
 	"pure": [
+        {
+            "name": "6.4.3-RELEASE",
+            "version": { "major": 6, "minor": 4, "patch": 3 },
+            "toolchain_urls": {
+                "aarch64": "https://download.swift.org/swift-6.4.3-release/ubuntu2404-aarch64/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE-ubuntu24.04-aarch64.tar.gz",
+                "x86_64": "https://download.swift.org/swift-6.4.3-release/ubuntu2404/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE-ubuntu24.04.tar.gz"
+            },
+            "artifact_url": "https://download.swift.org/swift-6.4.3-release/static-sdk/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE_static-linux-0.1.0.artifactbundle.tar.gz"
+		},
         {
             "name": "6.4.2-RELEASE",
             "version": { "major": 6, "minor": 4, "patch": 2 },
@@ -207,6 +227,18 @@
 		}
 	],
     "web": [
+        {
+            "name": "6.4.3-RELEASE",
+            "version": { "major": 6, "minor": 4, "patch": 3 },
+            "android_version": "24-0.1",
+			"toolchain_urls": {
+                "aarch64": "https://download.swift.org/swift-6.4.3-release/ubuntu2404-aarch64/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE-ubuntu24.04-aarch64.tar.gz",
+                "x86_64": "https://download.swift.org/swift-6.4.3-release/ubuntu2404/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE-ubuntu24.04.tar.gz"
+            },
+            "artifact_urls": {
+                "wasi": "https://download.swift.org/swift-6.4.3-release/wasm-sdk/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE_wasm.artifactbundle.tar.gz"
+            }
+		},
         {
             "name": "6.4.2-RELEASE",
             "version": { "major": 6, "minor": 4, "patch": 2 },

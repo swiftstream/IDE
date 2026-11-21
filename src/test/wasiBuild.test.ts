@@ -2,9 +2,9 @@ import * as assert from 'assert'
 import { getWasiBuildConfiguration } from '../wasiBuild'
 
 suite('Ordinary WASI SDK and output selection', () => {
-    test('selects the exact official Swift 6.4.2 full SDK and wasip1 target', () => {
-        assert.deepStrictEqual(getWasiBuildConfiguration(false, 'https://download.swift.org/swift-6.4.2-release/wasm-sdk/swift-6.4.2-RELEASE/swift-6.4.2-RELEASE_wasm.artifactbundle.tar.gz'), {
-            swiftSDK: 'swift-6.4.2-RELEASE_wasm',
+    test('selects the exact official Swift 6.4.3 full SDK and wasip1 target', () => {
+        assert.deepStrictEqual(getWasiBuildConfiguration(false, 'https://download.swift.org/swift-6.4.3-release/wasm-sdk/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE_wasm.artifactbundle.tar.gz'), {
+            swiftSDK: 'swift-6.4.3-RELEASE_wasm',
             targetTriple: 'wasm32-unknown-wasip1'
         })
     })
