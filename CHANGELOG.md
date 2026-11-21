@@ -1,4 +1,13 @@
 # Changelog
+## [1.19.0] - 2026-11-21
+### Added
+- Added official Swift 6.4.3 toolchains and SDK artifacts for Android, WebAssembly, and Static Linux, including Ubuntu 24.04 ARM64 and x86_64 toolchains.
+### Changed
+- Fresh Android, Server, Web, Pure, and Embedded projects targeting Swift 6.4 now resolve to Swift 6.4.3.
+- Android Swift 6.4.3 uses the official Android SDK with NDK r30, minimum API 28, and `swiftbuild` setup.
+- Generated Web projects now require SwifWeb from `2.0.0-nightly.14`, adopting JavaScriptKit 0.26.2 to restore native Linux helper linking.
+- Web builds now supply JavaScriptKit's missing `tslib` runtime build dependency when needed and retry incomplete JavaScriptKit runtime builds.
+- Extension packaging now builds the VSIX once, while Store Publish uploads the already-built `extension.vsix` without rebuilding it.
 ## [1.18.0] - 2026-11-19
 ### Added
 - Added Android support for official Swift 6.3.3 and Swift 6.4.2 toolchains.
