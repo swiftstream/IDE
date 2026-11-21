@@ -15,6 +15,7 @@ import { openProject } from '../helpers/openProject'
 import { DevContainerConfig, EmbeddedBranch, generateAndWriteDevcontainerJson } from '../devContainerConfig'
 import { AndroidStreamConfig, PackageMode } from '../androidStreamConfig'
 import { findTheRightToolchain, getAndroidCompatibility } from '../toolchain'
+import { swifWebPackageDependency } from './swifWebDependency'
 
 let webViewPanel: WebviewPanel | undefined
 const isWin = process.platform == 'win32'
@@ -210,7 +211,7 @@ async function createNewProjectFiles(
 				// MARK: DEPENDENCIES
 				dependencies.push({
 					comment: '🛜 Swift web framework.',
-					package: `.package(url: "${swifWebRepo}/web", from: "2.0.0-nightly.13")`
+					package: swifWebPackageDependency(swifWebRepo)
 				})
 				if (webAppStyle == `tailwind`) {
 					dependencies.push({ comment: '🖼️ UI Library', package: `.package(url: "${swifWebRepo}/tailwind", from: "1.0.0")` })

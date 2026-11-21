@@ -8,6 +8,11 @@ import { SwiftBuildType } from '../../../../swift'
 import { TimeMeasure } from '../../../../helpers/timeMeasureHelper'
 import { doesPackageCheckedOut, KnownPackage } from '../../../../commands/build/helpers'
 import { AbortHandler } from '../../../../bash'
+import {
+    getJavaScriptKitBuildActions,
+    javaScriptKitFallbackInstallArguments,
+    missingJavaScriptKitBuildDependencies
+} from './javaScriptKitBuildDependencies'
 
 export async function buildJavaScriptKit(options: {
     force: boolean,
@@ -15,8 +20,8 @@ export async function buildJavaScriptKit(options: {
 }) {
     if (!webStream) throw `webStream is null`
     const jsKitPath = `${projectDirectory}/.build/.${SwiftBuildType.Wasi}/checkouts/JavaScriptKit`
-    var packageWasModified = false
-    var packageWasCompiled = doesJavaScriptKitCompiled(jsKitPath)
+    let packageWasModified = false
+    const packageWasCompiled = doesJavaScriptKitCompiled(jsKitPath)
     const measure = new TimeMeasure()
     const doesPackageModulesPresent = () => fs.existsSync(`${jsKitPath}/node_modules`)
     if (doesPackageCheckedOut(KnownPackage.JavaScriptKit)) {
@@ -25,7 +30,13 @@ export async function buildJavaScriptKit(options: {
             lastModifedTimestampMs: getLastModifiedDate(LastModifiedDateType.JavaScriptKitPackage)
         })
     }
-    if (!options.force && packageWasCompiled && !packageWasModified) {
+    const buildActions = getJavaScriptKitBuildActions({
+        force: options.force,
+        packageModulesPresent: doesPackageModulesPresent(),
+        runtimePresent: packageWasCompiled,
+        packageWasModified
+    })
+    if (buildActions.shouldSkip) {
         print(`🫖 Skipping JavaScriptKit build since it is been compiled in past`, LogLevel.Detailed)
         return
     }
@@ -38,47 +49,64 @@ export async function buildJavaScriptKit(options: {
     }
     if (options.abortHandler.isCancelled) return
     buildStatus(`Building JavaScriptKit`)
-    if (!doesPackageModulesPresent()) {
-        try {
-            print(`Deleting ${jsKitPath}/package-lock.json`, LogLevel.Verbose)
-            fs.rmSync(`${jsKitPath}/package-lock.json`, { force: true })
-        } catch (error) {
-            print(`Error deleting ${jsKitPath}/package.json: ${error}`, LogLevel.Verbose)
-        }
-		print(`Building JavaScriptKit: npm install`, LogLevel.Verbose)
-		buildStatus('Building JavaScriptKit: npm install')
-		await webStream.npmJSKit.install([], options.abortHandler)
-		if (!doesPackageModulesPresent())
-			throw `JavaScriptKit: npm install failed`
-		print(`Building JavaScriptKit: npm run build`, LogLevel.Verbose)
-		buildStatus('Building JavaScriptKit: npm run build')
-        await webStream.npmJSKit.run(['build'], options.abortHandler)
-		if (!doesJavaScriptKitCompiled(jsKitPath)) {
-			print(`Building JavaScriptKit: npm run build (2nd attempt)`, LogLevel.Verbose)
-			await webStream.npmJSKit.run(['build'], options.abortHandler)
-		}
-	} else {
-		print(`Building JavaScriptKit: checking versions`, LogLevel.Verbose)
-		const projectPackageLockPath = `${projectDirectory}/${webSourcesFolder}/package-lock.json`
-		const jsKitPackagePath = `${jsKitPath}/package.json`
-		if (fs.existsSync(projectPackageLockPath)) {
-			const versions = readVersions({ projectLock: projectPackageLockPath, jsKitPackage: jsKitPackagePath })
-			if (versions.locked != versions.current) {
-				print(`Updating JavaScriptKit v${versions.locked} to v${versions.current} via npm install in WebSources folder`, LogLevel.Verbose)
-				buildStatus('Updating JavaScriptKit in web sources')
-				await webStream.npmWeb.install([], options.abortHandler)
-                const versionsAfterInstall = readVersions({ projectLock: projectPackageLockPath, jsKitPackage: jsKitPackagePath })
-                if (versionsAfterInstall.locked != versionsAfterInstall.current) {
-                    print(`JavaScriptKit installed version mismatch: v${versionsAfterInstall.locked} != ${versionsAfterInstall.current}`, LogLevel.Detailed)
-                    throw `JavaScriptKit installed version mismatch ${versionsAfterInstall.locked} != ${versionsAfterInstall.current}`
-                }
-			} else {
-                print(`JavaScriptKit v${versions.locked} is up to date in WebSources folder`, LogLevel.Verbose)
+
+    if (buildActions.installPackageDependencies) {
+        if (!doesPackageModulesPresent()) {
+            try {
+                print(`Deleting ${jsKitPath}/package-lock.json`, LogLevel.Verbose)
+                fs.rmSync(`${jsKitPath}/package-lock.json`, { force: true })
+            } catch (error) {
+                print(`Error deleting ${jsKitPath}/package.json: ${error}`, LogLevel.Verbose)
             }
-		} else {
-            print(`Skipping JavaScriptKit versions check since WebSources never been built`, LogLevel.Verbose)
         }
-	}
+        print(`Building JavaScriptKit: npm install`, LogLevel.Verbose)
+        buildStatus('Building JavaScriptKit: npm install')
+        await webStream.npmJSKit.install([], options.abortHandler)
+        if (!doesPackageModulesPresent())
+            throw `JavaScriptKit: npm install failed`
+    }
+
+    if (buildActions.buildRuntime) {
+        const missingBuildDependencies = missingJavaScriptKitBuildDependencies(jsKitPath)
+        if (missingBuildDependencies.length > 0) {
+            print(`Building JavaScriptKit: installing missing build dependencies ${missingBuildDependencies.join(', ')}`, LogLevel.Verbose)
+            buildStatus('Building JavaScriptKit: installing missing build dependencies')
+            await webStream.npmJSKit.install(javaScriptKitFallbackInstallArguments(), options.abortHandler)
+            const unresolvedBuildDependencies = missingJavaScriptKitBuildDependencies(jsKitPath)
+            if (unresolvedBuildDependencies.length > 0)
+                throw new Error(`JavaScriptKit: missing build dependencies ${unresolvedBuildDependencies.join(', ')}`)
+        }
+        print(`Building JavaScriptKit: npm run build`, LogLevel.Verbose)
+        buildStatus('Building JavaScriptKit: npm run build')
+        await webStream.npmJSKit.run(['build'], options.abortHandler)
+        if (!doesJavaScriptKitCompiled(jsKitPath)) {
+            print(`Building JavaScriptKit: npm run build (2nd attempt)`, LogLevel.Verbose)
+            await webStream.npmJSKit.run(['build'], options.abortHandler)
+        }
+        if (!doesJavaScriptKitCompiled(jsKitPath))
+            throw new Error('JavaScriptKit: npm run build did not produce Runtime/lib/index.d.ts')
+    }
+
+    print(`Building JavaScriptKit: checking versions`, LogLevel.Verbose)
+    const projectPackageLockPath = `${projectDirectory}/${webSourcesFolder}/package-lock.json`
+    const jsKitPackagePath = `${jsKitPath}/package.json`
+    if (fs.existsSync(projectPackageLockPath)) {
+        const versions = readVersions({ projectLock: projectPackageLockPath, jsKitPackage: jsKitPackagePath })
+        if (versions.locked != versions.current) {
+            print(`Updating JavaScriptKit v${versions.locked} to v${versions.current} via npm install in WebSources folder`, LogLevel.Verbose)
+            buildStatus('Updating JavaScriptKit in web sources')
+            await webStream.npmWeb.install([], options.abortHandler)
+            const versionsAfterInstall = readVersions({ projectLock: projectPackageLockPath, jsKitPackage: jsKitPackagePath })
+            if (versionsAfterInstall.locked != versionsAfterInstall.current) {
+                print(`JavaScriptKit installed version mismatch: v${versionsAfterInstall.locked} != v${versionsAfterInstall.current}`, LogLevel.Detailed)
+                throw `JavaScriptKit installed version mismatch ${versionsAfterInstall.locked} != ${versionsAfterInstall.current}`
+            }
+        } else {
+            print(`JavaScriptKit v${versions.locked} is up to date in WebSources folder`, LogLevel.Verbose)
+        }
+    } else {
+        print(`Skipping JavaScriptKit versions check since WebSources never been built`, LogLevel.Verbose)
+    }
     if (options.abortHandler.isCancelled) return
     saveLastModifiedDateForKey(LastModifiedDateType.JavaScriptKitPackage)
     measure.finish()
