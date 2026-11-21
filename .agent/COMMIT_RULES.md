@@ -62,6 +62,9 @@ Canonical rules:
 - no trailing period;
 - use `Area:` when it materially improves scannability, using the repository's existing area naming style such as `Sidebar:` or `Toolchains list:`;
 - use backticks around code identifiers, commands, flags, versions, filenames, or literals when they are being referred to as code/text tokens;
+- for routine dependency/package/tool bumps where the durable intent is to move to the current accepted/latest release, do not bake the transient exact dependency version into the subject; describe the stable intent instead, e.g. `📦 Web: bump to latest SwifWeb`; the exact resolved version belongs in the diff, changelog, release evidence, or commit body when one is needed;
+- include an exact version in the subject only when that exact version is itself the durable semantic intent, such as bumping the IDE's own release version, adding a specifically supported toolchain version, changing an explicit compatibility floor, or pinning/downgrading to a particular version for a reason;
+- for a changelog-only commit whose primary intent is simply to record already-integrated changes, prefer the repository's stable generic subject `📖 Update changelog` rather than repeating transient dependency/version details in the subject; use a more specific documentation subject only when the changelog change itself introduces a distinct durable policy or topic;
 - do not use Conventional Commits prefixes such as `feat:`, `fix:`, `docs:`, `chore:`, or another external commit-message convention;
 - do not add coding-agent attribution unless the maintainer explicitly requests it.
 
